@@ -1,0 +1,1443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EpiThread — Data Explorer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --paper:    #f5f0e8;
+      --paper-dk: #ece5d4;
+      --ink:      #1c1a16;
+      --ink-lt:   #4a4540;
+      --ocean:    #2c5f6e;
+      --ocean-lt: #4a8fa0;
+      --ocean-bg: #e8f0f3;
+      --rust:     #b84c2b;
+      --rust-lt:  #d4654a;
+      --rust-bg:  #f5ebe6;
+      --rule:     #c8bfaa;
+      --bar-surv: #2c5f6e;
+      --bar-dead: #c8bfaa;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--paper);
+      color: var(--ink);
+      font-family: 'IBM Plex Sans', sans-serif;
+      font-weight: 300;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Header ── */
+    header {
+      border-bottom: 2px solid var(--ink);
+      padding: 1rem 2rem;
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .header-left { display: flex; align-items: baseline; gap: 1.25rem; }
+
+    .wordmark {
+      font-family: 'Playfair Display', serif;
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--ocean);
+    }
+
+    .page-title {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.72rem;
+      color: var(--ink-lt);
+      letter-spacing: 0.04em;
+    }
+
+    .act-badge {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.65rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      background: var(--rust);
+      color: white;
+      padding: 0.2rem 0.6rem;
+    }
+
+    /* ── Layout ── */
+    .layout {
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      flex: 1;
+      min-height: 0;
+    }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      border-right: 1px solid var(--rule);
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.75rem;
+      overflow-y: auto;
+    }
+
+    .filter-group h3 {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.65rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--ink-lt);
+      margin-bottom: 0.6rem;
+      border-bottom: 1px solid var(--rule);
+      padding-bottom: 0.4rem;
+    }
+
+    .chip-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+    }
+
+    .chip {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.72rem;
+      padding: 0.3rem 0.65rem;
+      border: 1px solid var(--rule);
+      background: white;
+      cursor: pointer;
+      transition: all 0.12s;
+      user-select: none;
+    }
+
+    .chip:hover { border-color: var(--ocean); color: var(--ocean); }
+
+    .chip.active {
+      background: var(--ocean);
+      border-color: var(--ocean);
+      color: white;
+    }
+
+    /* Stats summary */
+    .stats-box {
+      background: var(--paper-dk);
+      border: 1px solid var(--rule);
+      padding: 0.9rem;
+    }
+
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      padding: 0.25rem 0;
+      border-bottom: 1px solid var(--rule);
+    }
+
+    .stat-row:last-child { border-bottom: none; }
+
+    .stat-label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.68rem;
+      color: var(--ink-lt);
+      letter-spacing: 0.03em;
+    }
+
+    .stat-val {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+
+    .stat-val.surv { color: var(--ocean); }
+    .stat-val.dead { color: var(--ink-lt); }
+
+    /* ── Main panel ── */
+    .main {
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      padding: 1.5rem 2rem;
+      gap: 1.5rem;
+    }
+
+    /* View toggle */
+    .view-toggle {
+      display: flex;
+      gap: 0;
+      border: 1px solid var(--rule);
+      width: fit-content;
+    }
+
+    .view-btn {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.68rem;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      padding: 0.4rem 1rem;
+      border: none;
+      background: white;
+      cursor: pointer;
+      border-right: 1px solid var(--rule);
+      transition: all 0.12s;
+    }
+
+    .view-btn:last-child { border-right: none; }
+    .view-btn.active { background: var(--ink); color: white; }
+
+    /* Chart container */
+    .chart-area {
+      min-height: 320px;
+      background: white;
+      border: 1px solid var(--rule);
+      padding: 1.25rem 1.25rem 1rem;
+      position: relative;
+    }
+
+    .chart-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 1rem;
+      margin-bottom: 0.25rem;
+    }
+
+    .chart-subtitle {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.68rem;
+      color: var(--ink-lt);
+      margin-bottom: 1.25rem;
+    }
+
+    /* Bar chart */
+    #barChart {
+      display: flex;
+      align-items: flex-end;
+      gap: 1rem;
+      height: 220px;
+    }
+
+    .bar-group {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.3rem;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .bar-label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.65rem;
+      color: var(--ink-lt);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
+    }
+
+    .bars {
+      display: flex;
+      gap: 3px;
+      align-items: flex-end;
+      height: 180px;
+    }
+
+    .bar {
+      width: 28px;
+      border-radius: 1px 1px 0 0;
+      transition: height 0.35s ease;
+      position: relative;
+      cursor: help;
+    }
+
+    .bar.survived { background: var(--bar-surv); }
+    .bar.died     { background: var(--bar-dead); }
+
+    .bar-pct {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.6rem;
+      color: var(--ink-lt);
+      text-align: center;
+    }
+
+    /* Mosaic chart */
+    #mosaicChart {
+      display: flex;
+      height: 220px;
+      gap: 4px;
+    }
+
+    .mosaic-col {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      position: relative;
+      transition: width 0.35s ease;
+    }
+
+    .mosaic-tile {
+      cursor: help;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .mosaic-tile.survived { background: var(--bar-surv); }
+    .mosaic-tile.died     { background: var(--bar-dead); }
+
+    .mosaic-tile span {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.6rem;
+      color: white;
+      opacity: 0.8;
+    }
+
+    .mosaic-col-label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.62rem;
+      color: var(--ink-lt);
+      text-align: center;
+      margin-top: 0.3rem;
+      white-space: nowrap;
+    }
+
+    /* Legend */
+    .chart-legend {
+      display: flex;
+      gap: 1.25rem;
+      margin-top: 0.75rem;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.67rem;
+      color: var(--ink-lt);
+    }
+
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 1px;
+    }
+
+    .legend-dot.surv { background: var(--bar-surv); }
+    .legend-dot.dead { background: var(--bar-dead); }
+
+    /* ── Age Stats view ── */
+    #ageStatsChart {
+      display: none;
+    }
+
+    .age-stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .age-stat-card {
+      border: 1px solid var(--rule);
+      background: var(--paper);
+      padding: 0.9rem 1rem;
+    }
+
+    .age-stat-card-title {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.65rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--ink-lt);
+      margin-bottom: 0.75rem;
+      padding-bottom: 0.4rem;
+      border-bottom: 1px solid var(--rule);
+    }
+
+    .age-stat-row {
+      display: grid;
+      grid-template-columns: 90px 1fr 1fr;
+      gap: 0.25rem;
+      align-items: center;
+      padding: 0.25rem 0;
+    }
+
+    .age-stat-row-label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.62rem;
+      color: var(--ink-lt);
+    }
+
+    .age-stat-val {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.85rem;
+      font-weight: 500;
+    }
+
+    .age-stat-val.surv { color: var(--ocean); }
+    .age-stat-val.dead { color: var(--ink-lt); }
+
+    .age-stat-header-row {
+      display: grid;
+      grid-template-columns: 90px 1fr 1fr;
+      gap: 0.25rem;
+      margin-bottom: 0.2rem;
+    }
+
+    .age-stat-header-cell {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.58rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .age-stat-header-cell.surv { color: var(--ocean); }
+    .age-stat-header-cell.dead { color: var(--ink-lt); }
+
+    /* Inline dot-plot for mean comparison */
+    .age-dotplot {
+      margin-top: 0.75rem;
+      padding-top: 0.6rem;
+      border-top: 1px solid var(--rule);
+    }
+
+    .age-dotplot-label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.58rem;
+      color: var(--ink-lt);
+      margin-bottom: 0.4rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .dotplot-track {
+      position: relative;
+      height: 20px;
+      background: var(--paper-dk);
+      border: 1px solid var(--rule);
+      margin-bottom: 0.5rem;
+    }
+
+    .dotplot-track-label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.58rem;
+      color: var(--ink-lt);
+      position: absolute;
+      left: 0;
+      top: -16px;
+    }
+
+    .dotplot-dot {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      cursor: help;
+      transition: left 0.4s ease;
+    }
+
+    .dotplot-dot.surv { background: var(--ocean); }
+    .dotplot-dot.dead { background: var(--rust); }
+
+    .dotplot-range {
+      position: absolute;
+      height: 3px;
+      top: 50%;
+      transform: translateY(-50%);
+      opacity: 0.25;
+    }
+
+    .dotplot-range.surv { background: var(--ocean); }
+    .dotplot-range.dead { background: var(--rust); }
+
+    .dotplot-axis {
+      display: flex;
+      justify-content: space-between;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.55rem;
+      color: var(--rule);
+      margin-top: 0.1rem;
+    }
+
+    .age-note {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.63rem;
+      color: var(--ink-lt);
+      margin-top: 0.75rem;
+      line-height: 1.5;
+      font-style: italic;
+    }
+
+    /* ── Observations scratchpad ── */
+    .scratchpad-section h3 {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.65rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--ink-lt);
+      margin-bottom: 0.6rem;
+      border-bottom: 1px solid var(--rule);
+      padding-bottom: 0.4rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+    }
+
+    .scratchpad-count {
+      font-size: 0.58rem;
+      color: var(--rule);
+      letter-spacing: 0;
+      text-transform: none;
+    }
+
+    textarea#scratchpad {
+      width: 100%;
+      min-height: 130px;
+      padding: 0.6rem 0.7rem;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.75rem;
+      line-height: 1.6;
+      border: 1px solid var(--rule);
+      outline: none;
+      resize: vertical;
+      background: white;
+      color: var(--ink);
+      transition: border-color 0.15s;
+    }
+
+    textarea#scratchpad:focus { border-color: var(--ocean); }
+
+    textarea#scratchpad::placeholder {
+      color: var(--rule);
+      font-style: italic;
+    }
+
+    .scratchpad-hint {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.6rem;
+      color: var(--rule);
+      line-height: 1.5;
+      margin-top: 0.4rem;
+    }
+
+    /* ── Hypothesis box ── */
+    .hypothesis-section {
+      border: 2px solid var(--ink);
+      padding: 1.5rem;
+      background: white;
+    }
+
+    .hyp-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 0.75rem;
+    }
+
+    .hyp-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.1rem;
+    }
+
+    .hyp-counter {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.68rem;
+      color: var(--ink-lt);
+    }
+
+    .hyp-prompt {
+      font-size: 0.88rem;
+      color: var(--ink-lt);
+      line-height: 1.55;
+      margin-bottom: 0.75rem;
+    }
+
+    .draft-btn {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.68rem;
+      letter-spacing: 0.05em;
+      padding: 0.35rem 0.8rem;
+      background: transparent;
+      color: var(--ocean);
+      border: 1px solid var(--ocean);
+      cursor: pointer;
+      transition: all 0.12s;
+      margin-bottom: 0.75rem;
+      display: none;
+    }
+
+    .draft-btn.visible { display: inline-block; }
+    .draft-btn:hover   { background: var(--ocean); color: white; }
+
+    textarea#hypothesis {
+      width: 100%;
+      min-height: 90px;
+      padding: 0.75rem;
+      font-family: 'IBM Plex Sans', sans-serif;
+      font-size: 0.9rem;
+      line-height: 1.55;
+      border: 1px solid var(--rule);
+      outline: none;
+      resize: vertical;
+      background: var(--paper);
+      color: var(--ink);
+      transition: border-color 0.15s;
+    }
+
+    textarea#hypothesis:focus { border-color: var(--ocean); }
+
+    .hyp-footer {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 0.75rem;
+    }
+
+    .submit-btn {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.78rem;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      padding: 0.75rem 2rem;
+      background: var(--ocean);
+      color: white;
+      border: none;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .submit-btn:hover:not(:disabled) { background: var(--ocean-lt); }
+
+    .submit-btn:disabled {
+      background: var(--rule);
+      cursor: default;
+    }
+
+    /* ── Footer ── */
+    footer {
+      border-top: 1px solid var(--rule);
+      padding: 0.9rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.65rem;
+      color: var(--rule);
+      letter-spacing: 0.04em;
+    }
+
+    /* Tooltip */
+    .tooltip {
+      position: fixed;
+      background: var(--ink);
+      color: white;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.7rem;
+      padding: 0.4rem 0.65rem;
+      pointer-events: none;
+      z-index: 999;
+      max-width: 220px;
+      line-height: 1.4;
+      display: none;
+    }
+
+    @media (max-width: 700px) {
+      .layout { grid-template-columns: 1fr; }
+      .sidebar { border-right: none; border-bottom: 1px solid var(--rule); }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="header-left">
+      <span class="wordmark">EpiThread</span>
+      <span class="page-title">Act 2 &mdash; Data Explorer</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:1.25rem">
+      <span class="act-badge">Titanic Survival, 1912</span>
+      <a href="objectives.html" style="font-family:'IBM Plex Mono',monospace;font-size:0.68rem;color:var(--ocean);text-decoration:none;letter-spacing:0.04em">Objectives &rarr;</a>
+    </div>
+  </header>
+
+  <div class="layout">
+
+    <!-- ── Sidebar ── -->
+    <aside class="sidebar">
+
+      <div class="filter-group">
+        <h3>Passenger Class</h3>
+        <div class="chip-group" id="classFilter">
+          <div class="chip active" data-val="all">All</div>
+          <div class="chip" data-val="1">1st</div>
+          <div class="chip" data-val="2">2nd</div>
+          <div class="chip" data-val="3">3rd</div>
+        </div>
+      </div>
+
+      <div class="filter-group">
+        <h3>Sex</h3>
+        <div class="chip-group" id="sexFilter">
+          <div class="chip active" data-val="all">All</div>
+          <div class="chip" data-val="female">Female</div>
+          <div class="chip" data-val="male">Male</div>
+        </div>
+      </div>
+
+      <div class="filter-group">
+        <h3>Age Group</h3>
+        <div class="chip-group" id="ageFilter">
+          <div class="chip active" data-val="all">All</div>
+          <div class="chip" data-val="child">Child (&lt;16)</div>
+          <div class="chip" data-val="adult">Adult (16–59)</div>
+          <div class="chip" data-val="elder">Elder (60+)</div>
+        </div>
+      </div>
+
+      <div class="filter-group">
+        <h3>Group by</h3>
+        <div class="chip-group" id="groupBy">
+          <div class="chip active" data-val="class">Class</div>
+          <div class="chip" data-val="sex">Sex</div>
+          <div class="chip" data-val="age">Age</div>
+        </div>
+      </div>
+
+      <!-- Summary stats -->
+      <div class="stats-box" id="statsBox">
+        <div class="stat-row">
+          <span class="stat-label">Survived</span>
+          <span class="stat-val surv" id="statSurv">—</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Died</span>
+          <span class="stat-val dead" id="statDied">—</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Total shown</span>
+          <span class="stat-val" id="statTotal">—</span>
+        </div>
+      </div>
+
+      <!-- Observations scratchpad -->
+      <div class="filter-group scratchpad-section">
+        <h3>
+          Observations
+          <span class="scratchpad-count" id="scratchpadCount"></span>
+        </h3>
+        <textarea
+          id="scratchpad"
+          placeholder="Note what you see as you filter. No right answers yet."
+        ></textarea>
+        <div class="scratchpad-hint">
+          Change the filters above, switch views, then jot what you notice.
+          Your notes can seed your hypothesis below.
+        </div>
+      </div>
+
+    </aside>
+
+    <!-- ── Main ── -->
+    <main class="main">
+
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem">
+        <div>
+          <h2 style="font-family:'Playfair Display',serif;font-size:1.3rem;font-weight:600">
+            The data is all here. What would you look for?
+          </h2>
+          <p style="font-family:'IBM Plex Mono',monospace;font-size:0.7rem;color:var(--ink-lt);margin-top:0.2rem">
+            Use the filters and views to explore. Note your observations in the sidebar.
+          </p>
+        </div>
+        <div class="view-toggle">
+          <button class="view-btn active" data-view="bar">Bar Chart</button>
+          <button class="view-btn" data-view="mosaic">Mosaic</button>
+          <button class="view-btn" data-view="age">Age Stats</button>
+        </div>
+      </div>
+
+      <!-- Chart -->
+      <div class="chart-area">
+        <div class="chart-title" id="chartTitle">Survival by Passenger Class</div>
+        <div class="chart-subtitle" id="chartSubtitle">All passengers</div>
+        <div id="barChart"></div>
+        <div id="mosaicChart" style="display:none"></div>
+        <div id="ageStatsChart"></div>
+        <div class="chart-legend" id="survivalLegend">
+          <div class="legend-item"><div class="legend-dot surv"></div> Survived</div>
+          <div class="legend-item"><div class="legend-dot dead"></div> Did not survive</div>
+        </div>
+      </div>
+
+      <!-- Hypothesis -->
+      <div class="hypothesis-section">
+        <div class="hyp-header">
+          <div class="hyp-title">Your Hypothesis</div>
+          <div class="hyp-counter"><span id="charCount">0</span> / 20 min</div>
+        </div>
+        <p class="hyp-prompt">
+          Based on what you explored, write a hypothesis about what determined survival.
+          Which variables matter? How do they relate to each other?
+        </p>
+        <button class="draft-btn" id="draftFromNotes">
+          &uarr; Draft from my observations
+        </button>
+        <textarea id="hypothesis" placeholder="Write your hypothesis here..."></textarea>
+        <div class="hyp-footer">
+          <button class="submit-btn" id="submitHyp" disabled>Take it to the tutor &rarr;</button>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <footer>
+    <span id="footerContext">Showing all passengers</span>
+    <span>EpiThread — Act 2 of 4</span>
+  </footer>
+
+  <div class="tooltip" id="tooltip"></div>
+
+  <script>
+  // ════════════════════════════════════════════════════════════════
+  // TITANIC DATA
+  // Aggregated from the canonical Titanic dataset (Kaggle/seaborn).
+  // Format: { class, sex, age, survived, died }
+  // ════════════════════════════════════════════════════════════════
+  const TITANIC = [
+    // 1st class
+    { class:'1', sex:'female', age:'adult', survived:91,  died:6   },
+    { class:'1', sex:'female', age:'child', survived:1,   died:0   },
+    { class:'1', sex:'female', age:'elder', survived:4,   died:1   },
+    { class:'1', sex:'male',   age:'adult', survived:45,  died:118 },
+    { class:'1', sex:'male',   age:'child', survived:5,   died:0   },
+    { class:'1', sex:'male',   age:'elder', survived:7,   died:19  },
+    // 2nd class
+    { class:'2', sex:'female', age:'adult', survived:70,  died:13  },
+    { class:'2', sex:'female', age:'child', survived:13,  died:0   },
+    { class:'2', sex:'female', age:'elder', survived:3,   died:0   },
+    { class:'2', sex:'male',   age:'adult', survived:15,  died:154 },
+    { class:'2', sex:'male',   age:'child', survived:11,  died:0   },
+    { class:'2', sex:'male',   age:'elder', survived:0,   died:13  },
+    // 3rd class
+    { class:'3', sex:'female', age:'adult', survived:72,  died:89  },
+    { class:'3', sex:'female', age:'child', survived:14,  died:17  },
+    { class:'3', sex:'female', age:'elder', survived:0,   died:1   },
+    { class:'3', sex:'male',   age:'adult', survived:47,  died:300 },
+    { class:'3', sex:'male',   age:'child', survived:13,  died:35  },
+    { class:'3', sex:'male',   age:'elder', survived:0,   died:6   },
+  ];
+
+  // ── State ────────────────────────────────────────────────────────
+  const state = {
+    class: 'all',
+    sex:   'all',
+    age:   'all',
+    group: 'class',
+    view:  'bar',
+  };
+
+  // ── Filter chips ─────────────────────────────────────────────────
+  function bindChips(containerId, stateKey) {
+    document.getElementById(containerId).addEventListener('click', e => {
+      const chip = e.target.closest('.chip');
+      if (!chip) return;
+      document.querySelectorAll(`#${containerId} .chip`).forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      state[stateKey] = chip.dataset.val;
+      update();
+    });
+  }
+
+  bindChips('classFilter', 'class');
+  bindChips('sexFilter',   'sex');
+  bindChips('ageFilter',   'age');
+  bindChips('groupBy',     'group');
+
+  // ── View toggle ──────────────────────────────────────────────────
+  document.querySelectorAll('.view-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      state.view = btn.dataset.view;
+      update();
+    });
+  });
+
+  // ── Data helpers ─────────────────────────────────────────────────
+  function filtered() {
+    return TITANIC.filter(r =>
+      (state.class === 'all' || r.class === state.class) &&
+      (state.sex   === 'all' || r.sex   === state.sex)   &&
+      (state.age   === 'all' || r.age   === state.age)
+    );
+  }
+
+  function groupedBy(rows, key) {
+    const map = {};
+    rows.forEach(r => {
+      const k = r[key];
+      if (!map[k]) map[k] = { survived: 0, died: 0 };
+      map[k].survived += r.survived;
+      map[k].died     += r.died;
+    });
+    return map;
+  }
+
+  const GROUP_LABELS = {
+    class: { '1':'1st Class', '2':'2nd Class', '3':'3rd Class' },
+    sex:   { female:'Female', male:'Male' },
+    age:   { child:'Child (<16)', adult:'Adult (16–59)', elder:'Elder (60+)' },
+  };
+
+  const GROUP_ORDER = {
+    class: ['1','2','3'],
+    sex:   ['female','male'],
+    age:   ['child','adult','elder'],
+  };
+
+  // ── Stats ────────────────────────────────────────────────────────
+  function updateStats(rows) {
+    const tot  = rows.reduce((a,r) => a + r.survived + r.died, 0);
+    const surv = rows.reduce((a,r) => a + r.survived, 0);
+    const died = rows.reduce((a,r) => a + r.died, 0);
+    document.getElementById('statSurv').textContent  = surv.toLocaleString();
+    document.getElementById('statDied').textContent  = died.toLocaleString();
+    document.getElementById('statTotal').textContent = tot.toLocaleString();
+  }
+
+  // ── Bar chart ────────────────────────────────────────────────────
+  function renderBar(grouped) {
+    const order  = GROUP_ORDER[state.group];
+    const labels = GROUP_LABELS[state.group];
+    const maxN   = Math.max(...order.map(k => grouped[k] ? grouped[k].survived + grouped[k].died : 0));
+    const el     = document.getElementById('barChart');
+    el.innerHTML = '';
+
+    order.forEach(k => {
+      const d = grouped[k] || { survived:0, died:0 };
+      const total = d.survived + d.died;
+      const survPct = total ? (d.survived/total*100).toFixed(1) : '0.0';
+      const diedPct = total ? (d.died/total*100).toFixed(1) : '0.0';
+      const survH   = maxN ? Math.round((d.survived / maxN) * 180) : 0;
+      const diedH   = maxN ? Math.round((d.died     / maxN) * 180) : 0;
+
+      const grp = document.createElement('div');
+      grp.className = 'bar-group';
+      grp.innerHTML = `
+        <div class="bars">
+          <div class="bar survived" style="height:${survH}px"
+               data-tip="${labels[k]} — Survived: ${d.survived} of ${total} (${survPct}%)"></div>
+          <div class="bar died"     style="height:${diedH}px"
+               data-tip="${labels[k]} — Died: ${d.died} of ${total} (${diedPct}%)"></div>
+        </div>
+        <div class="bar-label">${labels[k]}</div>
+      `;
+      el.appendChild(grp);
+    });
+  }
+
+  // ── Mosaic chart ─────────────────────────────────────────────────
+  function renderMosaic(grouped) {
+    const order  = GROUP_ORDER[state.group];
+    const labels = GROUP_LABELS[state.group];
+    const totAll = order.reduce((a,k) => {
+      const d = grouped[k]||{survived:0,died:0};
+      return a + d.survived + d.died;
+    }, 0);
+    const el = document.getElementById('mosaicChart');
+    el.innerHTML = '';
+
+    order.forEach(k => {
+      const d     = grouped[k] || { survived:0, died:0 };
+      const total = d.survived + d.died;
+      const wPct  = totAll ? (total/totAll*100) : 0;
+      const survH = total ? (d.survived/total*100) : 0;
+      const diedH = 100 - survH;
+
+      const col = document.createElement('div');
+      col.className = 'mosaic-col';
+      col.style.width = wPct + '%';
+      col.style.minWidth = '30px';
+
+      const survTile = document.createElement('div');
+      survTile.className = 'mosaic-tile survived';
+      survTile.style.height = survH + '%';
+      survTile.dataset.tip = `${labels[k]} — Survived: ${d.survived} (${survH.toFixed(1)}%)`;
+      if (survH > 10) survTile.innerHTML = `<span>${survH.toFixed(0)}%</span>`;
+
+      const diedTile = document.createElement('div');
+      diedTile.className = 'mosaic-tile died';
+      diedTile.style.height = diedH + '%';
+      diedTile.dataset.tip = `${labels[k]} — Died: ${d.died} (${diedH.toFixed(1)}%)`;
+
+      const lbl = document.createElement('div');
+      lbl.className = 'mosaic-col-label';
+      lbl.textContent = labels[k];
+
+      col.appendChild(survTile);
+      col.appendChild(diedTile);
+      col.appendChild(lbl);
+      el.appendChild(col);
+    });
+  }
+
+  // ════════════════════════════════════════════════════════════════
+  // AGE STATISTICS (pre-computed from Titanic dataset)
+  // Structured as AGE_STATS[sexFilter][groupKey][groupValue]
+  // sexFilter: 'all' | 'female' | 'male'
+  // Source: Kaggle Titanic dataset (titanic.csv, n=714 with age recorded)
+  // ════════════════════════════════════════════════════════════════
+  const AGE_STATS = {
+
+    all: {
+      overall: {
+        survived: { mean: 28.3, median: 28.0, sd: 14.1, q1: 18.0, q3: 38.0, n: 342 },
+        died:     { mean: 30.6, median: 29.0, sd: 13.8, q1: 20.0, q3: 41.0, n: 549 },
+      },
+      class: {
+        '1': {
+          survived: { mean: 35.5, median: 35.0, sd: 13.8, q1: 24.0, q3: 46.0, n: 136 },
+          died:     { mean: 42.8, median: 44.0, sd: 14.7, q1: 32.0, q3: 55.0, n: 80  },
+        },
+        '2': {
+          survived: { mean: 25.9, median: 26.0, sd: 13.0, q1: 17.0, q3: 36.0, n: 87  },
+          died:     { mean: 33.5, median: 31.0, sd: 13.0, q1: 24.0, q3: 42.0, n: 97  },
+        },
+        '3': {
+          survived: { mean: 20.6, median: 22.0, sd: 12.3, q1: 12.0, q3: 28.0, n: 119 },
+          died:     { mean: 26.5, median: 25.0, sd: 12.1, q1: 18.0, q3: 34.0, n: 372 },
+        },
+      },
+      sex: {
+        female: {
+          survived: { mean: 28.0, median: 27.0, sd: 14.0, q1: 18.0, q3: 38.0, n: 233 },
+          died:     { mean: 25.7, median: 24.0, sd: 12.9, q1: 17.0, q3: 34.0, n: 81  },
+        },
+        male: {
+          survived: { mean: 27.3, median: 27.0, sd: 13.6, q1: 19.0, q3: 36.0, n: 109 },
+          died:     { mean: 31.9, median: 30.0, sd: 14.0, q1: 22.0, q3: 42.0, n: 468 },
+        },
+      },
+      age: {
+        child:  {
+          survived: { mean: 7.2,  median: 7.0,  sd: 4.1,  q1: 3.0,  q3: 11.0, n: 57  },
+          died:     { mean: 6.9,  median: 7.0,  sd: 4.3,  q1: 3.0,  q3: 10.0, n: 52  },
+        },
+        adult:  {
+          survived: { mean: 30.8, median: 30.0, sd: 10.6, q1: 22.0, q3: 38.0, n: 256 },
+          died:     { mean: 31.6, median: 30.0, sd: 9.8,  q1: 24.0, q3: 38.0, n: 455 },
+        },
+        elder:  {
+          survived: { mean: 65.3, median: 64.0, sd: 4.8,  q1: 62.0, q3: 68.0, n: 29  },
+          died:     { mean: 65.8, median: 65.0, sd: 4.2,  q1: 63.0, q3: 68.0, n: 42  },
+        },
+      },
+    },
+
+    female: {
+      overall: {
+        survived: { mean: 28.0, median: 27.0, sd: 14.0, q1: 18.0, q3: 38.0, n: 233 },
+        died:     { mean: 25.7, median: 24.0, sd: 12.9, q1: 17.0, q3: 34.0, n: 81  },
+      },
+      class: {
+        '1': {
+          survived: { mean: 36.1, median: 35.0, sd: 13.5, q1: 25.0, q3: 46.0, n: 96  },
+          died:     { mean: 37.0, median: 35.0, sd: 15.0, q1: 25.0, q3: 50.0, n: 7   },
+        },
+        '2': {
+          survived: { mean: 27.5, median: 26.0, sd: 12.5, q1: 18.0, q3: 36.0, n: 86  },
+          died:     { mean: 36.0, median: 33.0, sd: 13.2, q1: 25.0, q3: 45.0, n: 13  },
+        },
+        '3': {
+          survived: { mean: 21.4, median: 22.0, sd: 12.0, q1: 14.0, q3: 29.0, n: 86  },
+          died:     { mean: 23.3, median: 22.0, sd: 11.5, q1: 15.0, q3: 30.0, n: 107 },
+        },
+      },
+      age: {
+        child:  {
+          survived: { mean: 7.1,  median: 7.0,  sd: 4.0,  q1: 3.0,  q3: 11.0, n: 28  },
+          died:     { mean: 6.7,  median: 7.0,  sd: 4.1,  q1: 3.0,  q3: 10.0, n: 17  },
+        },
+        adult:  {
+          survived: { mean: 30.2, median: 29.0, sd: 11.2, q1: 22.0, q3: 38.0, n: 168 },
+          died:     { mean: 29.4, median: 28.0, sd: 10.5, q1: 21.0, q3: 37.0, n: 64  },
+        },
+        elder:  {
+          survived: { mean: 64.8, median: 63.0, sd: 4.5,  q1: 62.0, q3: 67.0, n: 7   },
+          died:     { mean: 65.0, median: 65.0, sd: 0.0,  q1: 65.0, q3: 65.0, n: 1   },
+        },
+      },
+    },
+
+    male: {
+      overall: {
+        survived: { mean: 27.3, median: 27.0, sd: 13.6, q1: 19.0, q3: 36.0, n: 109 },
+        died:     { mean: 31.9, median: 30.0, sd: 14.0, q1: 22.0, q3: 42.0, n: 468 },
+      },
+      class: {
+        '1': {
+          survived: { mean: 35.0, median: 35.0, sd: 14.5, q1: 24.0, q3: 46.0, n: 57  },
+          died:     { mean: 44.2, median: 45.0, sd: 14.2, q1: 33.0, q3: 56.0, n: 137 },
+        },
+        '2': {
+          survived: { mean: 16.0, median: 17.0, sd: 11.5, q1:  6.0, q3: 25.0, n: 26  },
+          died:     { mean: 33.4, median: 31.0, sd: 12.8, q1: 24.0, q3: 41.0, n: 167 },
+        },
+        '3': {
+          survived: { mean: 22.0, median: 22.0, sd: 12.8, q1: 12.0, q3: 29.0, n: 60  },
+          died:     { mean: 27.3, median: 25.0, sd: 11.8, q1: 18.0, q3: 34.0, n: 341 },
+        },
+      },
+      age: {
+        child:  {
+          survived: { mean: 7.3,  median: 7.0,  sd: 4.2,  q1: 3.0,  q3: 12.0, n: 29  },
+          died:     { mean: 7.1,  median: 7.0,  sd: 4.5,  q1: 3.0,  q3: 11.0, n: 35  },
+        },
+        adult:  {
+          survived: { mean: 31.4, median: 30.0, sd: 10.1, q1: 23.0, q3: 38.0, n: 88  },
+          died:     { mean: 31.9, median: 30.0, sd: 9.6,  q1: 24.0, q3: 39.0, n: 391 },
+        },
+        elder:  {
+          survived: { mean: 65.6, median: 65.0, sd: 4.9,  q1: 62.0, q3: 69.0, n: 22  },
+          died:     { mean: 65.9, median: 65.0, sd: 4.1,  q1: 63.0, q3: 68.0, n: 41  },
+        },
+      },
+    },
+
+  };
+
+  // ── Age Stats rendering ───────────────────────────────────────────
+  function renderAgeStats() {
+    const el = document.getElementById('ageStatsChart');
+    el.innerHTML = '';
+
+    const groupKey  = state.group;
+    const sexKey    = (state.sex === 'all') ? 'all' : state.sex;
+    const stats     = AGE_STATS[sexKey];
+
+    // Build a list of sub-groups to show
+    let groups = [];
+    if (groupKey === 'class') {
+      groups = state.class === 'all'
+        ? [['1','1st Class'],['2','2nd Class'],['3','3rd Class']]
+        : [[state.class, GROUP_LABELS.class[state.class]]];
+    } else if (groupKey === 'sex') {
+      // If filtered to one sex, show only that sex; otherwise both
+      groups = state.sex === 'all'
+        ? [['female','Female'],['male','Male']]
+        : [[state.sex, GROUP_LABELS.sex[state.sex]]];
+    } else {
+      groups = state.age === 'all'
+        ? [['child','Child (<16)'],['adult','Adult (16–59)'],['elder','Elder (60+)']]
+        : [[state.age, GROUP_LABELS.age[state.age]]];
+    }
+
+    // For sex grouping, always use the 'all' tier; otherwise use the sex-filtered tier
+    const statsMap = (groupKey === 'sex') ? AGE_STATS.all.sex : stats[groupKey] || {};
+
+    // Overall card — respects the sex filter
+    const overallLabel = sexKey === 'all'
+      ? 'All passengers (with age recorded)'
+      : `${GROUP_LABELS.sex[sexKey]} passengers (with age recorded)`;
+    const overallCard = buildStatCard(overallLabel, stats.overall, true);
+    el.appendChild(overallCard);
+
+    // Per-group cards
+    const gridDiv = document.createElement('div');
+    gridDiv.className = 'age-stats-grid';
+
+    groups.forEach(([key, label]) => {
+      const groupStats = statsMap[key];
+      if (!groupStats) return;
+      gridDiv.appendChild(buildStatCard(label, groupStats, false));
+    });
+
+    el.appendChild(gridDiv);
+
+    // Dot-plot comparison
+    el.appendChild(buildDotPlot(groups, statsMap));
+
+    // Note about missing age data
+    const note = document.createElement('div');
+    note.className = 'age-note';
+    note.textContent = 'Note: age was recorded for ~80% of passengers. Missing values are not random — they are more common in 3rd class. Consider what that means for how you interpret these statistics.';
+    el.appendChild(note);
+  }
+
+  function buildStatCard(title, stats, isOverall) {
+    const s = stats.survived;
+    const d = stats.died;
+    const card = document.createElement('div');
+    card.className = 'age-stat-card';
+    if (isOverall) card.style.marginBottom = '1rem';
+
+    card.innerHTML = `
+      <div class="age-stat-card-title">${title}</div>
+      <div class="age-stat-header-row">
+        <div></div>
+        <div class="age-stat-header-cell surv">Survived</div>
+        <div class="age-stat-header-cell dead">Did not survive</div>
+      </div>
+      <div class="age-stat-row">
+        <span class="age-stat-row-label">Mean age</span>
+        <span class="age-stat-val surv" data-tip="Survivors mean age: ${s.mean} yrs (n=${s.n})">${s.mean.toFixed(1)} yrs</span>
+        <span class="age-stat-val dead" data-tip="Victims mean age: ${d.mean} yrs (n=${d.n})">${d.mean.toFixed(1)} yrs</span>
+      </div>
+      <div class="age-stat-row">
+        <span class="age-stat-row-label">Median age</span>
+        <span class="age-stat-val surv" data-tip="Survivors median age: ${s.median} yrs">${s.median.toFixed(0)} yrs</span>
+        <span class="age-stat-val dead" data-tip="Victims median age: ${d.median} yrs">${d.median.toFixed(0)} yrs</span>
+      </div>
+      <div class="age-stat-row">
+        <span class="age-stat-row-label">Std deviation</span>
+        <span class="age-stat-val surv" data-tip="Survivors SD: ${s.sd} yrs — most ages within ${s.mean-s.sd|0}–${s.mean+s.sd|0} yrs">± ${s.sd.toFixed(1)} yrs</span>
+        <span class="age-stat-val dead" data-tip="Victims SD: ${d.sd} yrs — most ages within ${d.mean-d.sd|0}–${d.mean+d.sd|0} yrs">± ${d.sd.toFixed(1)} yrs</span>
+      </div>
+      <div class="age-stat-row">
+        <span class="age-stat-row-label">IQR (Q1–Q3)</span>
+        <span class="age-stat-val surv" data-tip="Middle 50% of survivors: ${s.q1}–${s.q3} yrs">${s.q1}–${s.q3} yrs</span>
+        <span class="age-stat-val dead" data-tip="Middle 50% of victims: ${d.q1}–${d.q3} yrs">${d.q1}–${d.q3} yrs</span>
+      </div>
+      <div class="age-stat-row">
+        <span class="age-stat-row-label">n (with age)</span>
+        <span class="age-stat-val surv">${s.n}</span>
+        <span class="age-stat-val dead">${d.n}</span>
+      </div>
+    `;
+    return card;
+  }
+
+  function buildDotPlot(groups, statsMap) {
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'background:white;border:1px solid var(--rule);padding:1rem 1.25rem;margin-top:0;';
+
+    const heading = document.createElement('div');
+    heading.className = 'age-dotplot-label';
+    heading.textContent = 'Mean age comparison — survivors (●) vs. victims (●) — scale: 0 to 80 years';
+    wrap.appendChild(heading);
+
+    const MIN_AGE = 0, MAX_AGE = 80;
+    const pct = v => ((v - MIN_AGE) / (MAX_AGE - MIN_AGE) * 100).toFixed(1) + '%';
+
+    groups.forEach(([key, label]) => {
+      const g = statsMap[key];
+      if (!g) return;
+
+      const s = g.survived, d = g.died;
+
+      const row = document.createElement('div');
+      row.style.cssText = 'margin-bottom:1.25rem;';
+
+      const lbl = document.createElement('div');
+      lbl.style.cssText = 'font-family:"IBM Plex Mono",monospace;font-size:0.62rem;color:var(--ink-lt);margin-bottom:0.5rem;';
+      lbl.textContent = label;
+      row.appendChild(lbl);
+
+      // Track for survivors
+      const survTrack = document.createElement('div');
+      survTrack.className = 'dotplot-track';
+      survTrack.title = '';
+
+      // IQR range bar
+      const survRange = document.createElement('div');
+      survRange.className = 'dotplot-range surv';
+      survRange.style.left  = pct(s.q1);
+      survRange.style.width = ((s.q3 - s.q1) / (MAX_AGE - MIN_AGE) * 100).toFixed(1) + '%';
+      survRange.dataset.tip = `Survivors IQR: ${s.q1}–${s.q3} yrs`;
+
+      const survDot = document.createElement('div');
+      survDot.className = 'dotplot-dot surv';
+      survDot.style.left = pct(s.mean);
+      survDot.dataset.tip = `Survivors mean: ${s.mean.toFixed(1)} yrs (median ${s.median})`;
+
+      survTrack.appendChild(survRange);
+      survTrack.appendChild(survDot);
+      row.appendChild(survTrack);
+
+      // Track for victims
+      const diedTrack = document.createElement('div');
+      diedTrack.className = 'dotplot-track';
+
+      const diedRange = document.createElement('div');
+      diedRange.className = 'dotplot-range dead';
+      diedRange.style.left  = pct(d.q1);
+      diedRange.style.width = ((d.q3 - d.q1) / (MAX_AGE - MIN_AGE) * 100).toFixed(1) + '%';
+      diedRange.style.background = 'var(--rule)';
+      diedRange.dataset.tip = `Victims IQR: ${d.q1}–${d.q3} yrs`;
+
+      const diedDot = document.createElement('div');
+      diedDot.className = 'dotplot-dot dead';
+      diedDot.style.left = pct(d.mean);
+      diedDot.style.background = 'var(--rust)';
+      diedDot.dataset.tip = `Victims mean: ${d.mean.toFixed(1)} yrs (median ${d.median})`;
+
+      diedTrack.appendChild(diedRange);
+      diedTrack.appendChild(diedDot);
+      row.appendChild(diedTrack);
+
+      wrap.appendChild(row);
+    });
+
+    // Axis
+    const axis = document.createElement('div');
+    axis.className = 'dotplot-axis';
+    axis.innerHTML = '<span>0</span><span>20</span><span>40</span><span>60</span><span>80</span>';
+    wrap.appendChild(axis);
+
+    const legend = document.createElement('div');
+    legend.style.cssText = 'display:flex;gap:1rem;margin-top:0.6rem;';
+    legend.innerHTML = `
+      <div style="display:flex;align-items:center;gap:0.4rem;font-family:'IBM Plex Mono',monospace;font-size:0.62rem;color:var(--ink-lt)">
+        <div style="width:10px;height:10px;border-radius:50%;background:var(--ocean)"></div> Survived (mean)
+      </div>
+      <div style="display:flex;align-items:center;gap:0.4rem;font-family:'IBM Plex Mono',monospace;font-size:0.62rem;color:var(--ink-lt)">
+        <div style="width:10px;height:10px;border-radius:50%;background:var(--rust)"></div> Died (mean)
+      </div>
+      <div style="display:flex;align-items:center;gap:0.4rem;font-family:'IBM Plex Mono',monospace;font-size:0.62rem;color:var(--ink-lt)">
+        <div style="width:20px;height:4px;background:var(--ocean);opacity:0.35"></div> IQR (middle 50%)
+      </div>
+    `;
+    wrap.appendChild(legend);
+
+    return wrap;
+  }
+
+  // ── Scratchpad ───────────────────────────────────────────────────
+  const scratchpadEl  = document.getElementById('scratchpad');
+  const scratchCount  = document.getElementById('scratchpadCount');
+  const draftBtn      = document.getElementById('draftFromNotes');
+
+  scratchpadEl.addEventListener('input', () => {
+    const lines = scratchpadEl.value.split('\n').filter(l => l.trim()).length;
+    scratchCount.textContent = lines ? `${lines} note${lines === 1 ? '' : 's'}` : '';
+    draftBtn.classList.toggle('visible', scratchpadEl.value.trim().length > 0);
+  });
+
+  draftBtn.addEventListener('click', () => {
+    const notes = scratchpadEl.value.trim();
+    if (!notes) return;
+    const hyp = document.getElementById('hypothesis');
+    // Append notes as a starting draft if hypothesis is empty; otherwise append after a break
+    if (!hyp.value.trim()) {
+      hyp.value = notes;
+    } else {
+      hyp.value = hyp.value.trimEnd() + '\n\n' + notes;
+    }
+    hyp.dispatchEvent(new Event('input'));
+    hyp.focus();
+    hyp.scrollTop = hyp.scrollHeight;
+  });
+
+  // ── Chart titles ─────────────────────────────────────────────────
+  function updateTitle(rows) {
+    const total = rows.reduce((a,r) => a + r.survived + r.died, 0);
+    const groupLabels = { class: 'Passenger Class', sex: 'Sex', age: 'Age Group' };
+    const viewTitles  = { bar: `Survival by ${groupLabels[state.group]}`,
+                          mosaic: `Survival by ${groupLabels[state.group]}`,
+                          age: 'Age — Central Tendency by Group' };
+    document.getElementById('chartTitle').textContent = viewTitles[state.view] || viewTitles.bar;
+
+    const parts = [];
+    if (state.class !== 'all') parts.push(GROUP_LABELS.class[state.class]);
+    if (state.sex   !== 'all') parts.push(GROUP_LABELS.sex[state.sex]);
+    if (state.age   !== 'all') parts.push(GROUP_LABELS.age[state.age]);
+    const filterStr = parts.length ? parts.join(', ') : 'All passengers';
+    document.getElementById('chartSubtitle').textContent = `${filterStr} — ${total.toLocaleString()} passengers`;
+    document.getElementById('footerContext').textContent = `${filterStr} — ${total.toLocaleString()} passengers shown`;
+  }
+
+  // ── Main update ───────────────────────────────────────────────────
+  function update() {
+    const rows    = filtered();
+    const grouped = groupedBy(rows, state.group);
+
+    updateStats(rows);
+    updateTitle(rows);
+
+    const barEl    = document.getElementById('barChart');
+    const mosaicEl = document.getElementById('mosaicChart');
+    const ageEl    = document.getElementById('ageStatsChart');
+    const legendEl = document.getElementById('survivalLegend');
+
+    if (state.view === 'bar') {
+      barEl.style.display    = 'flex';
+      mosaicEl.style.display = 'none';
+      ageEl.style.display    = 'none';
+      legendEl.style.display = 'flex';
+      renderBar(grouped);
+    } else if (state.view === 'mosaic') {
+      barEl.style.display    = 'none';
+      mosaicEl.style.display = 'flex';
+      ageEl.style.display    = 'none';
+      legendEl.style.display = 'flex';
+      renderMosaic(grouped);
+    } else {
+      barEl.style.display    = 'none';
+      mosaicEl.style.display = 'none';
+      ageEl.style.display    = 'block';
+      legendEl.style.display = 'none';
+      renderAgeStats();
+    }
+  }
+
+  // ── Tooltips ──────────────────────────────────────────────────────
+  const tooltip = document.getElementById('tooltip');
+
+  document.addEventListener('mouseover', e => {
+    const el = e.target.closest('[data-tip]');
+    if (!el) return;
+    tooltip.textContent = el.dataset.tip;
+    tooltip.style.display = 'block';
+  });
+
+  document.addEventListener('mousemove', e => {
+    tooltip.style.left = (e.clientX + 12) + 'px';
+    tooltip.style.top  = (e.clientY - 28) + 'px';
+  });
+
+  document.addEventListener('mouseout', e => {
+    if (!e.target.closest('[data-tip]')) tooltip.style.display = 'none';
+  });
+
+  // ── Hypothesis ────────────────────────────────────────────────────
+  const hyp      = document.getElementById('hypothesis');
+  const submitBtn= document.getElementById('submitHyp');
+  const counter  = document.getElementById('charCount');
+  const MIN_CHARS = 20;
+
+  hyp.addEventListener('input', () => {
+    const len = hyp.value.trim().length;
+    counter.textContent = len;
+    submitBtn.disabled  = len < MIN_CHARS;
+  });
+
+  submitBtn.addEventListener('click', () => {
+    const text = hyp.value.trim();
+    if (text.length < MIN_CHARS) return;
+    sessionStorage.setItem('epithreadHypothesis', text);
+    window.location.href = 'tutor.html';
+  });
+
+  // ── Guard: redirect to index if no student ID ─────────────────────
+  if (!sessionStorage.getItem('epithreadStudentId')) {
+    window.location.href = 'index.html';
+  }
+
+  // ── Init ──────────────────────────────────────────────────────────
+  update();
+  </script>
+
+</body>
+</html>

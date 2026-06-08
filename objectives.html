@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EpiThread — Learning Objectives</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --paper:    #f5f0e8;
+      --paper-dk: #ece5d4;
+      --ink:      #1c1a16;
+      --ink-lt:   #4a4540;
+      --ocean:    #2c5f6e;
+      --ocean-lt: #4a8fa0;
+      --ocean-bg: #e8f0f3;
+      --rust:     #b84c2b;
+      --rust-lt:  #d4654a;
+      --rust-bg:  #f5ebe6;
+      --rule:     #c8bfaa;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--paper);
+      color: var(--ink);
+      font-family: 'IBM Plex Sans', sans-serif;
+      font-weight: 300;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      border-bottom: 2px solid var(--ink);
+      padding: 1rem 2.5rem;
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .header-left { display: flex; align-items: baseline; gap: 1.25rem; }
+
+    .wordmark {
+      font-family: 'Playfair Display', serif;
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--ocean);
+      text-decoration: none;
+    }
+
+    .page-title {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.72rem;
+      color: var(--ink-lt);
+      letter-spacing: 0.04em;
+    }
+
+    .back-link {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.68rem;
+      color: var(--ocean);
+      text-decoration: none;
+      letter-spacing: 0.04em;
+    }
+
+    .back-link:hover { text-decoration: underline; }
+
+    /* ── Content ── */
+    .content {
+      max-width: 820px;
+      margin: 3rem auto;
+      padding: 0 2.5rem;
+      flex: 1;
+    }
+
+    .intro-label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.68rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--rust);
+      margin-bottom: 0.6rem;
+    }
+
+    h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(1.6rem, 4vw, 2.4rem);
+      font-weight: 700;
+      line-height: 1.2;
+      margin-bottom: 0.6rem;
+    }
+
+    .intro-sub {
+      font-size: 0.9rem;
+      color: var(--ink-lt);
+      line-height: 1.65;
+      max-width: 600px;
+      margin-bottom: 3rem;
+      border-bottom: 1px solid var(--rule);
+      padding-bottom: 1.5rem;
+    }
+
+    /* ── Objective sections ── */
+    .section {
+      margin-bottom: 2.5rem;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: baseline;
+      gap: 1rem;
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--rule);
+    }
+
+    .section-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+
+    .section-tag {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.6rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 0.15rem 0.5rem;
+    }
+
+    .section-tag.primary  { background: var(--ocean);    color: white; }
+    .section-tag.light    { background: var(--ocean-bg);  color: var(--ocean); }
+    .section-tag.brief    { background: var(--paper-dk);  color: var(--ink-lt); border: 1px solid var(--rule); }
+
+    .obj-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+    }
+
+    .obj-item {
+      display: flex;
+      gap: 0.85rem;
+      align-items: flex-start;
+    }
+
+    .obj-num {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.65rem;
+      color: var(--rule);
+      padding-top: 0.15rem;
+      flex-shrink: 0;
+      width: 1.5rem;
+      text-align: right;
+    }
+
+    .obj-text {
+      font-size: 0.9rem;
+      line-height: 1.6;
+      color: var(--ink);
+    }
+
+    .obj-text em {
+      font-style: italic;
+      color: var(--ocean);
+    }
+
+    /* ── Arc note ── */
+    .arc-note {
+      background: var(--paper-dk);
+      border: 1px solid var(--rule);
+      border-left: 3px solid var(--ocean);
+      padding: 1.1rem 1.25rem;
+      margin-bottom: 2.5rem;
+    }
+
+    .arc-note-label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.62rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--ocean);
+      margin-bottom: 0.4rem;
+    }
+
+    .arc-note-text {
+      font-size: 0.88rem;
+      line-height: 1.65;
+      color: var(--ink-lt);
+    }
+
+    /* ── Module map ── */
+    .module-map {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 0;
+      border: 1px solid var(--rule);
+      margin-bottom: 3rem;
+    }
+
+    .module-step {
+      padding: 1rem;
+      border-right: 1px solid var(--rule);
+      text-align: center;
+    }
+
+    .module-step:last-child { border-right: none; }
+
+    .module-step-num {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.58rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--rust);
+      margin-bottom: 0.3rem;
+    }
+
+    .module-step-name {
+      font-family: 'Playfair Display', serif;
+      font-size: 0.88rem;
+      font-weight: 600;
+    }
+
+    .module-step-desc {
+      font-size: 0.72rem;
+      color: var(--ink-lt);
+      margin-top: 0.25rem;
+      line-height: 1.4;
+    }
+
+    footer {
+      border-top: 1px solid var(--rule);
+      padding: 1rem 2.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.65rem;
+      color: var(--rule);
+      letter-spacing: 0.04em;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="header-left">
+      <a class="wordmark" href="index.html">EpiThread</a>
+      <span class="page-title">Learning Objectives</span>
+    </div>
+    <a class="back-link" href="index.html">&larr; Back to module</a>
+  </header>
+
+  <div class="content">
+
+    <div class="intro-label">Pre-Lecture Module &mdash; Foundations of Medicine</div>
+    <h1>What this module teaches</h1>
+    <p class="intro-sub">
+      This session uses the Titanic survival dataset as an entry point to epidemiological
+      thinking. The goal is not methods — it is the reasoning underneath them.
+      By the end you should be able to look at a table of counts and ask better questions
+      about it than you could before you started.
+    </p>
+
+    <!-- Module arc -->
+    <div class="module-map">
+      <div class="module-step">
+        <div class="module-step-num">Act 1</div>
+        <div class="module-step-name">Video</div>
+        <div class="module-step-desc">Provocation &amp; framing</div>
+      </div>
+      <div class="module-step">
+        <div class="module-step-num">Act 2</div>
+        <div class="module-step-name">Explorer</div>
+        <div class="module-step-desc">Data, filters, age stats</div>
+      </div>
+      <div class="module-step">
+        <div class="module-step-num">Act 3</div>
+        <div class="module-step-name">Tutor</div>
+        <div class="module-step-desc">Socratic dialogue</div>
+      </div>
+      <div class="module-step">
+        <div class="module-step-num">Act 4</div>
+        <div class="module-step-name">Debrief</div>
+        <div class="module-step-desc">Concepts named &amp; logged</div>
+      </div>
+    </div>
+
+    <!-- Arc note -->
+    <div class="arc-note">
+      <div class="arc-note-label">Through-line</div>
+      <div class="arc-note-text">
+        Everything in this course sits somewhere on the arc from
+        <strong>data → knowledge → wisdom</strong>.
+        Data is counts and measurements. Knowledge is what we can reliably infer from them.
+        Wisdom is knowing when our inferences hold and when the data misleads us.
+        This module establishes that arc before you have any methods vocabulary —
+        because the vocabulary only makes sense once you've felt the problem it solves.
+      </div>
+    </div>
+
+    <!-- Section 1: Epi Foundations -->
+    <div class="section">
+      <div class="section-header">
+        <span class="section-title">Epidemiology Foundations</span>
+        <span class="section-tag primary">Primary</span>
+      </div>
+      <ul class="obj-list">
+        <li class="obj-item">
+          <span class="obj-num">1</span>
+          <span class="obj-text">
+            Define epidemiology in your own words — arrived at through data exploration,
+            not received as a definition.
+          </span>
+        </li>
+        <li class="obj-item">
+          <span class="obj-num">2</span>
+          <span class="obj-text">
+            Explain how population-level patterns inform individual clinical decisions —
+            and where that reasoning breaks down.
+          </span>
+        </li>
+        <li class="obj-item">
+          <span class="obj-num">3</span>
+          <span class="obj-text">
+            Explain why climate change is a public health concern and how epidemiology
+            illuminates the relationship between environmental exposures and health outcomes.
+            <em>(The same causal reasoning you practiced here applies directly to
+            wildfire smoke, extreme heat, and vector-borne disease.)</em>
+          </span>
+        </li>
+      </ul>
+    </div>
+
+    <!-- Section 2: Association, Confounding, Effect Modification -->
+    <div class="section">
+      <div class="section-header">
+        <span class="section-title">Association, Confounding &amp; Causal Inference</span>
+        <span class="section-tag primary">Primary</span>
+      </div>
+      <ul class="obj-list">
+        <li class="obj-item">
+          <span class="obj-num">4</span>
+          <span class="obj-text">
+            Distinguish between an association in data and a causal claim —
+            and articulate what additional evidence would be needed to move from one to the other.
+          </span>
+        </li>
+        <li class="obj-item">
+          <span class="obj-num">5</span>
+          <span class="obj-text">
+            Recognize confounding: identify a scenario where a third variable distorts
+            an apparent relationship between an exposure and an outcome.
+          </span>
+        </li>
+        <li class="obj-item">
+          <span class="obj-num">6</span>
+          <span class="obj-text">
+            Recognize effect modification: identify when the effect of one variable
+            on an outcome differs depending on the level of another variable.
+          </span>
+        </li>
+        <li class="obj-item">
+          <span class="obj-num">7</span>
+          <span class="obj-text">
+            Apply stratification as a technique for examining relationships within subgroups
+            and interpreting what the stratified results reveal.
+          </span>
+        </li>
+        <li class="obj-item">
+          <span class="obj-num">8</span>
+          <span class="obj-text">
+            Reason counterfactually: articulate what would have needed to be different
+            for an observed outcome to change — and why that question is central to causal inference.
+          </span>
+        </li>
+      </ul>
+    </div>
+
+    <!-- Section 3: Central Tendency -->
+    <div class="section">
+      <div class="section-header">
+        <span class="section-title">Central Tendency &amp; Variability</span>
+        <span class="section-tag primary">Primary</span>
+      </div>
+      <ul class="obj-list">
+        <li class="obj-item">
+          <span class="obj-num">9</span>
+          <span class="obj-text">
+            Define mean, median, standard deviation, and interquartile range,
+            and calculate each from a simple dataset.
+          </span>
+        </li>
+        <li class="obj-item">
+          <span class="obj-num">10</span>
+          <span class="obj-text">
+            Select the least-biased measure of central tendency for a given distribution —
+            and explain when the mean misleads.
+          </span>
+        </li>
+        <li class="obj-item">
+          <span class="obj-num">11</span>
+          <span class="obj-text">
+            Interpret a wide standard deviation as a signal that the mean may describe
+            no individual in the group accurately — and draw appropriate conclusions.
+          </span>
+        </li>
+      </ul>
+    </div>
+
+    <!-- Section 4: Relative Risk -->
+    <div class="section">
+      <div class="section-header">
+        <span class="section-title">Relative Risk &amp; Proportional Comparison</span>
+        <span class="section-tag light">Introduced</span>
+      </div>
+      <ul class="obj-list">
+        <li class="obj-item">
+          <span class="obj-num">12</span>
+          <span class="obj-text">
+            Interpret survival proportions as risk estimates and compare them across groups —
+            the logic that underlies relative risk, before the formula.
+          </span>
+        </li>
+        <li class="obj-item">
+          <span class="obj-num">13</span>
+          <span class="obj-text">
+            Recognize that a ratio of risks depends on which groups are compared
+            and which are held constant — anticipating the issue of reference categories
+            covered in the statistics session.
+          </span>
+        </li>
+      </ul>
+    </div>
+
+    <!-- Section 5: Study Design (brief) -->
+    <div class="section">
+      <div class="section-header">
+        <span class="section-title">Study Design</span>
+        <span class="section-tag brief">Named in debrief only</span>
+      </div>
+      <ul class="obj-list">
+        <li class="obj-item">
+          <span class="obj-num">14</span>
+          <span class="obj-text">
+            Understand that formal study designs — cohort, case-control, and randomized trial —
+            are systematic answers to the questions you asked while exploring this data.
+            Definitions and trade-offs are covered in subsequent sessions.
+          </span>
+        </li>
+      </ul>
+    </div>
+
+    <!-- How assessed -->
+    <div class="arc-note" style="border-left-color: var(--rust);">
+      <div class="arc-note-label" style="color:var(--rust)">How these are assessed</div>
+      <div class="arc-note-text">
+        The Socratic tutor dialogue and debrief serve as the formative assessment for this session.
+        Your debrief is logged by student ID and counts toward participation credit.
+        Summative assessment of confounding, effect modification, and relative risk occurs
+        in the Foundations of Medicine review and subsequent block sessions.
+      </div>
+    </div>
+
+  </div>
+
+  <footer>
+    <span>EpiThread Pre-Lecture &mdash; University of Virginia School of Medicine</span>
+    <span>K. Enfield</span>
+  </footer>
+
+</body>
+</html>

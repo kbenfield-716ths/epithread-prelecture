@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EpiThread — Socratic Tutor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --paper:    #f5f0e8;
+      --paper-dk: #ece5d4;
+      --ink:      #1c1a16;
+      --ink-lt:   #4a4540;
+      --ocean:    #2c5f6e;
+      --ocean-lt: #4a8fa0;
+      --ocean-bg: #e8f0f3;
+      --rust:     #b84c2b;
+      --rust-lt:  #d4654a;
+      --rule:     #c8bfaa;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+    }
+
+    body {
+      background: var(--paper);
+      color: var(--ink);
+      font-family: 'IBM Plex Sans', sans-serif;
+      font-weight: 300;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Header ── */
+    header {
+      border-bottom: 2px solid var(--ink);
+      padding: 1rem 2rem;
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      flex-shrink: 0;
+    }
+
+    .header-left { display: flex; align-items: baseline; gap: 1.25rem; }
+
+    .wordmark {
+      font-family: 'Playfair Display', serif;
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--ocean);
+    }
+
+    .page-title {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.72rem;
+      color: var(--ink-lt);
+      letter-spacing: 0.04em;
+    }
+
+    .exchange-counter {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.68rem;
+      color: var(--ink-lt);
+    }
+
+    .exchange-counter span {
+      color: var(--ocean);
+      font-weight: 500;
+    }
+
+    /* ── Layout ── */
+    .chat-layout {
+      display: flex;
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    /* ── Hypothesis sidebar ── */
+    .hyp-sidebar {
+      width: 260px;
+      border-right: 1px solid var(--rule);
+      padding: 1.5rem;
+      overflow-y: auto;
+      flex-shrink: 0;
+    }
+
+    .hyp-sidebar-label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.62rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--rust);
+      margin-bottom: 0.5rem;
+    }
+
+    .hyp-sidebar-text {
+      font-size: 0.85rem;
+      line-height: 1.6;
+      color: var(--ink);
+      background: var(--paper-dk);
+      border-left: 3px solid var(--rust);
+      padding: 0.75rem;
+      font-style: italic;
+    }
+
+    .concept-list {
+      margin-top: 2rem;
+    }
+
+    .concept-list-label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.62rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--ocean);
+      margin-bottom: 0.6rem;
+      border-bottom: 1px solid var(--rule);
+      padding-bottom: 0.3rem;
+    }
+
+    .concept-tag {
+      display: inline-block;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.68rem;
+      padding: 0.2rem 0.5rem;
+      border: 1px solid var(--ocean);
+      color: var(--ocean);
+      margin: 0.2rem 0.2rem 0 0;
+      opacity: 0;
+      transition: opacity 0.4s ease;
+    }
+
+    .concept-tag.visible { opacity: 1; }
+
+    /* ── Chat area ── */
+    .chat-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1.5rem 2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+      scroll-behavior: smooth;
+    }
+
+    .message {
+      display: flex;
+      gap: 0.9rem;
+      max-width: 720px;
+      animation: msgIn 0.25s ease;
+    }
+
+    @keyframes msgIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .message.user { align-self: flex-end; flex-direction: row-reverse; }
+
+    .avatar {
+      width: 30px;
+      height: 30px;
+      border-radius: 2px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.62rem;
+      font-weight: 500;
+      letter-spacing: 0.04em;
+      margin-top: 2px;
+    }
+
+    .avatar.tutor { background: var(--ocean); color: white; }
+    .avatar.user  { background: var(--paper-dk); color: var(--ink-lt); border: 1px solid var(--rule); }
+
+    .bubble {
+      padding: 0.85rem 1rem;
+      line-height: 1.65;
+      font-size: 0.9rem;
+    }
+
+    .bubble.tutor {
+      background: white;
+      border: 1px solid var(--rule);
+      border-top: 2px solid var(--ocean);
+    }
+
+    .bubble.user {
+      background: var(--paper-dk);
+      border: 1px solid var(--rule);
+    }
+
+    /* Debrief bubble styling */
+    .bubble.debrief {
+      background: var(--ocean-bg);
+      border: 1px solid var(--ocean);
+      border-top: 2px solid var(--ocean);
+    }
+
+    .debrief-header {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.65rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--ocean);
+      margin-bottom: 0.5rem;
+    }
+
+    /* Typing indicator */
+    .typing-indicator {
+      display: none;
+      padding: 0.7rem 1rem;
+      background: white;
+      border: 1px solid var(--rule);
+      border-top: 2px solid var(--ocean);
+      gap: 5px;
+      align-items: center;
+      width: fit-content;
+    }
+
+    .typing-indicator.visible { display: flex; }
+
+    .typing-dot {
+      width: 6px;
+      height: 6px;
+      background: var(--ocean);
+      border-radius: 50%;
+      animation: typingBounce 1.2s infinite;
+    }
+
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes typingBounce {
+      0%, 80%, 100% { transform: translateY(0); }
+      40%           { transform: translateY(-5px); }
+    }
+
+    /* ── Input area ── */
+    .input-area {
+      border-top: 1px solid var(--rule);
+      padding: 1rem 2rem;
+      background: white;
+      flex-shrink: 0;
+    }
+
+    .input-hint {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.65rem;
+      color: var(--ink-lt);
+      margin-bottom: 0.5rem;
+    }
+
+    .input-hint code {
+      background: var(--paper-dk);
+      padding: 0.1rem 0.3rem;
+      font-size: 0.65rem;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 0;
+      border: 2px solid var(--ink);
+    }
+
+    .input-row textarea {
+      flex: 1;
+      padding: 0.75rem 1rem;
+      font-family: 'IBM Plex Sans', sans-serif;
+      font-size: 0.9rem;
+      line-height: 1.5;
+      border: none;
+      outline: none;
+      resize: none;
+      background: var(--paper);
+      color: var(--ink);
+      min-height: 52px;
+      max-height: 140px;
+    }
+
+    .input-row textarea:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .send-btn {
+      padding: 0 1.25rem;
+      background: var(--ocean);
+      color: white;
+      border: none;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.75rem;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      transition: background 0.15s;
+      white-space: nowrap;
+      align-self: stretch;
+    }
+
+    .send-btn:hover:not(:disabled) { background: var(--ocean-lt); }
+
+    .send-btn:disabled {
+      background: var(--rule);
+      cursor: default;
+    }
+
+    /* ── Debrief complete state ── */
+    .debrief-done {
+      display: none;
+      padding: 1rem 2rem;
+      background: var(--paper-dk);
+      border-top: 1px solid var(--rule);
+      text-align: center;
+      flex-shrink: 0;
+    }
+
+    .debrief-done.visible { display: block; }
+
+    .debrief-done p {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.72rem;
+      color: var(--ink-lt);
+      margin-bottom: 0.75rem;
+    }
+
+    .back-btn {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.72rem;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      padding: 0.55rem 1.25rem;
+      background: transparent;
+      color: var(--ocean);
+      border: 1px solid var(--ocean);
+      cursor: pointer;
+      transition: all 0.15s;
+      margin: 0 0.3rem;
+    }
+
+    .back-btn:hover { background: var(--ocean); color: white; }
+
+    /* ── Footer ── */
+    footer {
+      border-top: 1px solid var(--rule);
+      padding: 0.7rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.62rem;
+      color: var(--rule);
+      letter-spacing: 0.04em;
+      flex-shrink: 0;
+    }
+
+    @media (max-width: 700px) {
+      .hyp-sidebar { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="header-left">
+      <span class="wordmark">EpiThread</span>
+      <span class="page-title">Act 3 &mdash; Socratic Tutor</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:1.5rem">
+      <span class="exchange-counter">Exchange <span id="exchangeNum">0</span> of 6–8</span>
+      <a href="objectives.html" style="font-family:'IBM Plex Mono',monospace;font-size:0.68rem;color:var(--ocean);text-decoration:none;letter-spacing:0.04em">Objectives &rarr;</a>
+    </div>
+  </header>
+
+  <div class="chat-layout">
+
+    <!-- ── Hypothesis sidebar ── -->
+    <aside class="hyp-sidebar">
+      <div class="hyp-sidebar-label">Your hypothesis</div>
+      <div class="hyp-sidebar-text" id="hypDisplay">Loading...</div>
+
+      <div class="concept-list" id="conceptList" style="display:none">
+        <div class="concept-list-label">Concepts touched</div>
+        <div id="conceptTags"></div>
+      </div>
+    </aside>
+
+    <!-- ── Chat ── -->
+    <div class="chat-area">
+      <div class="messages" id="messages">
+
+        <!-- Typing indicator lives here, appended by JS -->
+
+      </div>
+
+      <div class="input-area" id="inputArea">
+        <div class="input-hint">
+          Respond to the tutor's question. When you're ready to see what you learned, type <code>debrief</code>.
+        </div>
+        <div class="input-row">
+          <textarea
+            id="userInput"
+            placeholder="Your response..."
+            rows="2"
+          ></textarea>
+          <button class="send-btn" id="sendBtn">Send</button>
+        </div>
+      </div>
+
+      <div class="debrief-done" id="debriefDone">
+        <p>Your debrief has been logged. You're done with this module.</p>
+        <button class="back-btn" onclick="window.location.href='explorer.html'">&larr; Back to explorer</button>
+        <button class="back-btn" onclick="window.location.href='index.html'">&larr; Start over</button>
+      </div>
+    </div>
+
+  </div>
+
+  <footer>
+    <span id="footerStudent">Student: —</span>
+    <span>EpiThread — Act 3 of 4</span>
+  </footer>
+
+  <script>
+  // ════════════════════════════════════════════════════════════════
+  // TUTOR CHAT
+  // ════════════════════════════════════════════════════════════════
+
+  // ── Session state ────────────────────────────────────────────────
+  const studentId  = sessionStorage.getItem('epithreadStudentId')  || '';
+  const hypothesis = sessionStorage.getItem('epithreadHypothesis') || '';
+
+  // Guard
+  if (!studentId || !hypothesis) {
+    window.location.href = 'index.html';
+  }
+
+  document.getElementById('footerStudent').textContent = `Student: ${studentId}`;
+  document.getElementById('hypDisplay').textContent    = hypothesis;
+
+  // Conversation history sent to API
+  const conversationHistory = [];
+  let exchangeCount = 0;
+  let debriefTriggered = false;
+  let debriefLogged    = false;
+
+  // ── DOM refs ──────────────────────────────────────────────────────
+  const messagesEl  = document.getElementById('messages');
+  const inputEl     = document.getElementById('userInput');
+  const sendBtn     = document.getElementById('sendBtn');
+  const inputArea   = document.getElementById('inputArea');
+  const debriefDone = document.getElementById('debriefDone');
+  const exchNum     = document.getElementById('exchangeNum');
+
+  // ── Typing indicator ──────────────────────────────────────────────
+  const typingWrap = document.createElement('div');
+  typingWrap.style.cssText = 'display:flex;gap:0.9rem;max-width:720px';
+  typingWrap.innerHTML = `
+    <div class="avatar tutor">AI</div>
+    <div class="typing-indicator" id="typingIndicator">
+      <div class="typing-dot"></div>
+      <div class="typing-dot"></div>
+      <div class="typing-dot"></div>
+    </div>
+  `;
+  messagesEl.appendChild(typingWrap);
+
+  // ── Render helpers ────────────────────────────────────────────────
+  function addMessage(role, html, isDebrief = false) {
+    const wrap = document.createElement('div');
+    wrap.className = `message ${role}`;
+
+    const avatar = document.createElement('div');
+    avatar.className = `avatar ${role}`;
+    avatar.textContent = role === 'tutor' ? 'AI' : 'YOU';
+
+    const bubble = document.createElement('div');
+    bubble.className = `bubble ${role}${isDebrief ? ' debrief' : ''}`;
+    if (isDebrief) {
+      bubble.innerHTML = `<div class="debrief-header">Debrief</div>${html}`;
+    } else {
+      bubble.innerHTML = html;
+    }
+
+    wrap.appendChild(avatar);
+    wrap.appendChild(bubble);
+    messagesEl.insertBefore(wrap, typingWrap);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+    return bubble;
+  }
+
+  function showTyping(show) {
+    typingWrap.style.display = show ? 'flex' : 'none';
+    if (show) messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
+  function setInputDisabled(disabled) {
+    inputEl.disabled  = disabled;
+    sendBtn.disabled  = disabled;
+  }
+
+  // ── API call ──────────────────────────────────────────────────────
+  async function sendToTutor(userMessage) {
+    conversationHistory.push({ role: 'user', content: userMessage });
+
+    setInputDisabled(true);
+    showTyping(true);
+
+    let assistantText = '';
+
+    try {
+      const resp = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          hypothesis,
+          messages: conversationHistory,
+          isDebrief: debriefTriggered,
+        }),
+      });
+
+      if (!resp.ok) {
+        throw new Error(`API error ${resp.status}`);
+      }
+
+      // Stream the response
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      showTyping(false);
+      const bubble = addMessage('tutor', '', debriefTriggered);
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        // Parse SSE lines
+        const lines = buffer.split('\n');
+        buffer = lines.pop();
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = line.slice(6).trim();
+            if (data === '[DONE]') break;
+            try {
+              const parsed = JSON.parse(data);
+              const delta  = parsed.delta?.text || '';
+              if (delta) {
+                assistantText += delta;
+                bubble.innerHTML = (debriefTriggered ? '<div class="debrief-header">Debrief</div>' : '')
+                  + markdownToHtml(assistantText);
+                messagesEl.scrollTop = messagesEl.scrollHeight;
+              }
+            } catch (_) {}
+          }
+        }
+      }
+
+    } catch (err) {
+      showTyping(false);
+      assistantText = 'Something went wrong connecting to the tutor. Please try again.';
+      addMessage('tutor', `<em style="color:var(--rust)">${assistantText}</em>`);
+    }
+
+    conversationHistory.push({ role: 'assistant', content: assistantText });
+    setInputDisabled(false);
+    inputEl.focus();
+
+    // Handle debrief completion
+    if (debriefTriggered && !debriefLogged) {
+      debriefLogged = true;
+      extractAndShowConcepts(assistantText);
+      await logDebrief(assistantText);
+      inputArea.style.display = 'none';
+      debriefDone.classList.add('visible');
+    }
+
+    return assistantText;
+  }
+
+  // ── Concept extraction & display ─────────────────────────────────
+  const CONCEPT_PATTERNS = {
+    'confounding':        /\bconfound/i,
+    'effect modification':/\beffect modif/i,
+    'stratification':     /\bstratif/i,
+    'selection bias':     /\bselection bias/i,
+    'information bias':   /\binformation bias/i,
+    'causal inference':   /\bcausal/i,
+    'association':        /\bassociation/i,
+    'study design':       /\bstudy design/i,
+    'counterfactual':     /\bcounterfactual/i,
+  };
+
+  function extractAndShowConcepts(debriefText) {
+    const found = Object.entries(CONCEPT_PATTERNS)
+      .filter(([, re]) => re.test(debriefText))
+      .map(([name]) => name);
+
+    if (!found.length) return;
+
+    const listEl = document.getElementById('conceptList');
+    const tagsEl = document.getElementById('conceptTags');
+    listEl.style.display = 'block';
+
+    found.forEach((c, i) => {
+      const tag = document.createElement('span');
+      tag.className = 'concept-tag';
+      tag.textContent = c;
+      tagsEl.appendChild(tag);
+      setTimeout(() => tag.classList.add('visible'), i * 200 + 300);
+    });
+  }
+
+  // ── Debrief logging ───────────────────────────────────────────────
+  async function logDebrief(debriefSummary) {
+    try {
+      const concepts = Object.entries(CONCEPT_PATTERNS)
+        .filter(([, re]) => re.test(debriefSummary))
+        .map(([name]) => name);
+
+      await fetch('/api/debrief', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          studentId,
+          hypothesis,
+          debriefSummary,
+          conceptsTouched: concepts,
+          exchangeCount,
+          timestamp: new Date().toISOString(),
+        }),
+      });
+    } catch (err) {
+      console.warn('Debrief log failed:', err);
+    }
+  }
+
+  // ── Simple markdown → html ────────────────────────────────────────
+  function markdownToHtml(text) {
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.+?)\*/g, '<em>$1</em>')
+      .replace(/\n\n/g, '</p><p>')
+      .replace(/\n/g, '<br />')
+      .replace(/^/, '<p>')
+      .replace(/$/, '</p>');
+  }
+
+  // ── Send ──────────────────────────────────────────────────────────
+  async function handleSend() {
+    const text = inputEl.value.trim();
+    if (!text) return;
+
+    inputEl.value = '';
+    inputEl.style.height = 'auto';
+
+    // Check for debrief trigger
+    if (/^\s*debrief\s*$/i.test(text)) {
+      debriefTriggered = true;
+      addMessage('user', 'debrief');
+    } else {
+      exchangeCount++;
+      exchNum.textContent = exchangeCount;
+      addMessage('user', markdownToHtml(text));
+    }
+
+    await sendToTutor(text);
+  }
+
+  sendBtn.addEventListener('click', handleSend);
+
+  inputEl.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  });
+
+  // Auto-resize textarea
+  inputEl.addEventListener('input', () => {
+    inputEl.style.height = 'auto';
+    inputEl.style.height = Math.min(inputEl.scrollHeight, 140) + 'px';
+  });
+
+  // ── Boot: send hypothesis as first context message ────────────────
+  (async () => {
+    showTyping(true);
+    await sendToTutor(hypothesis);
+  })();
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,16 @@
+{
+  "name": "epithread-prelecture",
+  "version": "1.0.0",
+  "description": "EpiThread Pre-Lecture: Titanic data exploration + Socratic AI tutor",
+  "private": true,
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.24.0"
+  },
+  "scripts": {
+    "dev": "vercel dev",
+    "deploy": "vercel --prod"
+  }
+}

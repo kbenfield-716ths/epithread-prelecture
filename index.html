@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EpiThread — Before We Begin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --paper:    #f5f0e8;
+      --paper-dk: #ece5d4;
+      --ink:      #1c1a16;
+      --ink-lt:   #4a4540;
+      --ocean:    #2c5f6e;
+      --ocean-lt: #4a8fa0;
+      --rust:     #b84c2b;
+      --rust-lt:  #d4654a;
+      --rule:     #c8bfaa;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--paper);
+      color: var(--ink);
+      font-family: 'IBM Plex Sans', sans-serif;
+      font-weight: 300;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Header ── */
+    header {
+      border-bottom: 2px solid var(--ink);
+      padding: 1.25rem 2.5rem;
+      display: flex;
+      align-items: baseline;
+      gap: 1.5rem;
+    }
+
+    .wordmark {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.1rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--ocean);
+    }
+
+    .course-label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.72rem;
+      color: var(--ink-lt);
+      letter-spacing: 0.04em;
+    }
+
+    .obj-link {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.68rem;
+      color: var(--ocean);
+      text-decoration: none;
+      letter-spacing: 0.04em;
+      margin-left: auto;
+    }
+
+    .obj-link:hover { text-decoration: underline; }
+
+    /* ── Hero ── */
+    .hero {
+      max-width: 860px;
+      margin: 4rem auto 0;
+      padding: 0 2.5rem;
+      text-align: center;
+    }
+
+    .act-label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.7rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--rust);
+      margin-bottom: 1rem;
+    }
+
+    h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(2rem, 5vw, 3.25rem);
+      line-height: 1.18;
+      font-weight: 700;
+      color: var(--ink);
+      margin-bottom: 1.25rem;
+    }
+
+    h1 em {
+      font-style: italic;
+      color: var(--ocean);
+    }
+
+    .lede {
+      font-size: 1.05rem;
+      line-height: 1.7;
+      color: var(--ink-lt);
+      max-width: 640px;
+      margin: 0 auto 2.5rem;
+    }
+
+    /* ── Video frame ── */
+    .video-frame {
+      background: var(--ink);
+      border: 2px solid var(--ink);
+      aspect-ratio: 16/9;
+      max-width: 760px;
+      width: 100%;
+      margin: 0 auto 3rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .video-frame iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      display: block;
+    }
+
+    .video-placeholder {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+      color: var(--rule);
+    }
+
+    .video-placeholder svg {
+      opacity: 0.4;
+    }
+
+    .video-placeholder p {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.75rem;
+      letter-spacing: 0.06em;
+      opacity: 0.5;
+    }
+
+    /* ── Student ID gate ── */
+    .gate {
+      max-width: 480px;
+      margin: 0 auto 5rem;
+      padding: 0 2.5rem;
+      text-align: center;
+    }
+
+    .gate-heading {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.2rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .gate-sub {
+      font-size: 0.85rem;
+      color: var(--ink-lt);
+      margin-bottom: 1.5rem;
+      line-height: 1.5;
+    }
+
+    .id-row {
+      display: flex;
+      gap: 0;
+      border: 2px solid var(--ink);
+    }
+
+    .id-row input {
+      flex: 1;
+      padding: 0.85rem 1rem;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 1rem;
+      background: white;
+      border: none;
+      outline: none;
+      color: var(--ink);
+      letter-spacing: 0.04em;
+    }
+
+    .id-row input::placeholder {
+      color: var(--rule);
+    }
+
+    .id-row button {
+      padding: 0.85rem 1.5rem;
+      background: var(--ocean);
+      color: white;
+      border: none;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.8rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background 0.15s;
+      white-space: nowrap;
+    }
+
+    .id-row button:hover {
+      background: var(--ocean-lt);
+    }
+
+    .id-row button:disabled {
+      background: var(--rule);
+      cursor: default;
+    }
+
+    .id-error {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.72rem;
+      color: var(--rust);
+      margin-top: 0.5rem;
+      min-height: 1rem;
+    }
+
+    /* ── Arc strip ── */
+    .arc-strip {
+      background: var(--paper-dk);
+      border-top: 1px solid var(--rule);
+      border-bottom: 1px solid var(--rule);
+      padding: 2rem 2.5rem;
+      margin-bottom: 4rem;
+    }
+
+    .arc-inner {
+      max-width: 760px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 0;
+    }
+
+    .arc-step {
+      padding: 0 1.5rem;
+      border-right: 1px solid var(--rule);
+      text-align: center;
+    }
+
+    .arc-step:first-child { padding-left: 0; }
+    .arc-step:last-child  { border-right: none; padding-right: 0; }
+
+    .arc-num {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.65rem;
+      letter-spacing: 0.1em;
+      color: var(--rust);
+      text-transform: uppercase;
+      margin-bottom: 0.35rem;
+    }
+
+    .arc-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 0.95rem;
+      font-weight: 600;
+      margin-bottom: 0.3rem;
+    }
+
+    .arc-desc {
+      font-size: 0.77rem;
+      color: var(--ink-lt);
+      line-height: 1.4;
+    }
+
+    .arc-step.active .arc-num  { color: var(--ocean); }
+    .arc-step.active .arc-title { color: var(--ocean); }
+
+    /* ── Footer ── */
+    footer {
+      margin-top: auto;
+      border-top: 1px solid var(--rule);
+      padding: 1rem 2.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.65rem;
+      color: var(--rule);
+      letter-spacing: 0.04em;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <span class="wordmark">EpiThread</span>
+    <span class="course-label">Introductory Epidemiology &mdash; Pre-Lecture Module</span>
+    <a class="obj-link" href="objectives.html">Learning Objectives &rarr;</a>
+  </header>
+
+  <!-- Arc orientation strip -->
+  <div class="arc-strip">
+    <div class="arc-inner">
+      <div class="arc-step active">
+        <div class="arc-num">Act 1</div>
+        <div class="arc-title">Introduction</div>
+        <div class="arc-desc">Video lecture &amp; provocation</div>
+      </div>
+      <div class="arc-step">
+        <div class="arc-num">Act 2</div>
+        <div class="arc-title">Data Explorer</div>
+        <div class="arc-desc">Titanic survival dataset</div>
+      </div>
+      <div class="arc-step">
+        <div class="arc-num">Act 3</div>
+        <div class="arc-title">Socratic Tutor</div>
+        <div class="arc-desc">AI dialogue on your hypothesis</div>
+      </div>
+      <div class="arc-step">
+        <div class="arc-num">Act 4</div>
+        <div class="arc-title">Debrief</div>
+        <div class="arc-desc">Concepts named &amp; logged</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hero -->
+  <div class="hero">
+    <div class="act-label">Act 1 &mdash; Before the Methods</div>
+    <h1>Data is not knowledge.<br /><em>What's the difference?</em></h1>
+    <p class="lede">
+      Watch the lecture below. The instructor will walk you through a provocation —
+      a dataset you may think you already understand. Then you'll explore it yourself
+      and find out how much the numbers hide.
+    </p>
+
+    <!-- Video embed — swap src for YouTube/Panopto URL when available -->
+    <div class="video-frame" id="videoContainer">
+      <!-- To embed a YouTube video, replace this placeholder with:
+           <iframe src="https://www.youtube.com/embed/VIDEO_ID" allowfullscreen></iframe>
+           To embed Panopto:
+           <iframe src="https://YOUR_INSTITUTION.hosted.panopto.com/Panopto/Pages/Embed.aspx?id=VIDEO_ID" allowfullscreen></iframe>
+      -->
+      <div class="video-placeholder">
+        <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="2" y="2" width="60" height="60" rx="4" stroke="currentColor" stroke-width="2"/>
+          <polygon points="24,18 24,46 48,32" fill="currentColor"/>
+        </svg>
+        <p>VIDEO PLACEHOLDER — INSTRUCTOR TO EMBED</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Student ID gate -->
+  <div class="gate">
+    <div class="gate-heading">Enter your student ID to continue</div>
+    <div class="gate-sub">
+      Your ID is attached to your debrief record so your instructor can award participation credit.
+      Use your university computing ID (e.g., <code style="font-family:'IBM Plex Mono',monospace;font-size:0.82em">mst3k</code>).
+    </div>
+    <div class="id-row">
+      <input
+        type="text"
+        id="studentIdInput"
+        placeholder="computing id"
+        autocomplete="off"
+        autocapitalize="none"
+        spellcheck="false"
+        maxlength="32"
+      />
+      <button id="continueBtn" disabled>Continue &rarr;</button>
+    </div>
+    <div class="id-error" id="idError"></div>
+  </div>
+
+  <footer>
+    <span>EpiThread Pre-Lecture &mdash; Data &rarr; Knowledge &rarr; Wisdom</span>
+    <span id="footerTimestamp"></span>
+  </footer>
+
+  <script>
+    // ── Student ID gate ──────────────────────────────────────────────────
+    const input = document.getElementById('studentIdInput');
+    const btn   = document.getElementById('continueBtn');
+    const err   = document.getElementById('idError');
+
+    // Restore saved ID if returning
+    const saved = sessionStorage.getItem('epithreadStudentId');
+    if (saved) input.value = saved;
+    btn.disabled = input.value.trim().length < 2;
+
+    input.addEventListener('input', () => {
+      const val = input.value.trim();
+      btn.disabled = val.length < 2;
+      err.textContent = '';
+    });
+
+    input.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && !btn.disabled) btn.click();
+    });
+
+    btn.addEventListener('click', () => {
+      const id = input.value.trim().toLowerCase();
+      if (!/^[a-z0-9_-]{2,32}$/.test(id)) {
+        err.textContent = 'Use letters, numbers, hyphens, or underscores only.';
+        return;
+      }
+      sessionStorage.setItem('epithreadStudentId', id);
+      window.location.href = 'explorer.html';
+    });
+
+    // ── Footer timestamp ─────────────────────────────────────────────────
+    document.getElementById('footerTimestamp').textContent =
+      new Date().toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' });
+  </script>
+
+</body>
+</html>
