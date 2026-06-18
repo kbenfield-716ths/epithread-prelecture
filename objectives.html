@@ -200,7 +200,7 @@
     /* ── Module map ── */
     .module-map {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      grid-template-columns: repeat(4, 1fr);
       gap: 0;
       border: 1px solid var(--rule);
       margin-bottom: 3rem;
@@ -246,6 +246,44 @@
       font-size: 0.65rem;
       color: var(--rule);
       letter-spacing: 0.04em;
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 600px) {
+      header {
+        padding: 0.85rem 1.25rem;
+      }
+      .content {
+        margin: 1.5rem auto;
+        padding: 0 1.25rem;
+      }
+      .module-map {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .module-step {
+        border-right: 1px solid var(--rule);
+        border-bottom: 1px solid var(--rule);
+      }
+      .module-step:nth-child(2n) { border-right: none; }
+      .module-step:nth-child(3),
+      .module-step:nth-child(4)  { border-bottom: none; }
+      footer {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.25rem;
+        padding: 0.85rem 1.25rem;
+      }
+    }
+
+    @media (max-width: 400px) {
+      .module-map {
+        grid-template-columns: 1fr;
+      }
+      .module-step {
+        border-right: none;
+        border-bottom: 1px solid var(--rule);
+      }
+      .module-step:last-child { border-bottom: none; }
     }
   </style>
 </head>

@@ -74,6 +74,34 @@
       padding: 0.2rem 0.6rem;
     }
 
+    /* ── Filter toggle (mobile only) ── */
+    .filter-toggle {
+      display: none;
+      width: 100%;
+      padding: 0.85rem 1.25rem;
+      background: var(--paper-dk);
+      border: none;
+      border-bottom: 1px solid var(--rule);
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.75rem;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      color: var(--ocean);
+      cursor: pointer;
+      text-align: left;
+      gap: 0.5rem;
+      align-items: center;
+    }
+
+    .filter-toggle-icon {
+      display: inline-block;
+      transition: transform 0.2s;
+    }
+
+    .filter-toggle.open .filter-toggle-icon {
+      transform: rotate(180deg);
+    }
+
     /* ── Layout ── */
     .layout {
       display: grid;
@@ -118,6 +146,9 @@
       cursor: pointer;
       transition: all 0.12s;
       user-select: none;
+      min-height: 44px;
+      display: flex;
+      align-items: center;
     }
 
     .chip:hover { border-color: var(--ocean); color: var(--ocean); }
@@ -266,6 +297,20 @@
       font-size: 0.6rem;
       color: var(--ink-lt);
       text-align: center;
+    }
+
+    /* Static survival % label shown on bars (always visible on mobile) */
+    .bar-surv-label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.6rem;
+      color: white;
+      text-align: center;
+      position: absolute;
+      bottom: 4px;
+      left: 50%;
+      transform: translateX(-50%);
+      white-space: nowrap;
+      display: none; /* shown via JS on mobile */
     }
 
     /* Mosaic chart */
@@ -653,8 +698,60 @@
     }
 
     @media (max-width: 700px) {
-      .layout { grid-template-columns: 1fr; }
-      .sidebar { border-right: none; border-bottom: 1px solid var(--rule); }
+      .filter-toggle {
+        display: flex;
+      }
+      .layout {
+        grid-template-columns: 1fr;
+      }
+      .sidebar {
+        border-right: none;
+        border-bottom: 1px solid var(--rule);
+        padding: 1rem;
+        gap: 1.25rem;
+        /* Hidden by default on mobile; toggled open by JS */
+        display: none;
+      }
+      .sidebar.open {
+        display: flex;
+      }
+      .main {
+        padding: 1rem;
+        gap: 1rem;
+      }
+      header {
+        padding: 0.85rem 1rem;
+      }
+      .act-badge {
+        display: none;
+      }
+      .bar-surv-label {
+        display: block;
+      }
+      footer {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.2rem;
+        padding: 0.85rem 1rem;
+      }
+      .submit-btn {
+        width: 100%;
+      }
+      .hyp-footer {
+        justify-content: stretch;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .chart-area {
+        padding: 0.85rem 0.75rem 0.75rem;
+      }
+      #barChart {
+        gap: 0.5rem;
+      }
+      .bar {
+        width: 22px;
+      }
     }
   </style>
 </head>
@@ -671,10 +768,15 @@
     </div>
   </header>
 
+  <!-- Mobile filter toggle -->
+  <button class="filter-toggle" id="filterToggle" aria-expanded="false" aria-controls="sidebar">
+    <span class="filter-toggle-icon">▼</span>&nbsp; Filters &amp; Stats
+  </button>
+
   <div class="layout">
 
     <!-- ── Sidebar ── -->
-    <aside class="sidebar">
+    <aside class="sidebar" id="sidebar">
 
       <div class="filter-group">
         <h3>Passenger Class</h3>
@@ -938,10 +1040,13 @@
       grp.innerHTML = `
         <div class="bars">
           <div class="bar survived" style="height:${survH}px"
-               data-tip="${labels[k]} — Survived: ${d.survived} of ${total} (${survPct}%)"></div>
+               data-tip="${labels[k]} — Survived: ${d.survived} of ${total} (${survPct}%)">
+            ${survH >= 24 ? `<span class="bar-surv-label">${survPct}%</span>` : ''}
+          </div>
           <div class="bar died"     style="height:${diedH}px"
                data-tip="${labels[k]} — Died: ${d.died} of ${total} (${diedPct}%)"></div>
         </div>
+        <div class="bar-pct">${survPct}% survived</div>
         <div class="bar-label">${labels[k]}</div>
       `;
       el.appendChild(grp);
@@ -1433,6 +1538,17 @@
   // ── Guard: redirect to index if no student ID ─────────────────────
   if (!sessionStorage.getItem('epithreadStudentId')) {
     window.location.href = 'index.html';
+  }
+
+  // ── Mobile filter toggle ──────────────────────────────────────────
+  const filterToggle = document.getElementById('filterToggle');
+  const sidebar      = document.getElementById('sidebar');
+  if (filterToggle) {
+    filterToggle.addEventListener('click', () => {
+      const isOpen = sidebar.classList.toggle('open');
+      filterToggle.classList.toggle('open', isOpen);
+      filterToggle.setAttribute('aria-expanded', isOpen);
+    });
   }
 
   // ── Init ──────────────────────────────────────────────────────────

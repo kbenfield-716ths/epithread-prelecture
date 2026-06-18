@@ -374,6 +374,44 @@
 
     @media (max-width: 700px) {
       .hyp-sidebar { display: none; }
+      header {
+        padding: 0.75rem 1rem;
+      }
+      .page-title {
+        display: none;
+      }
+      .messages {
+        padding: 1rem;
+        gap: 1rem;
+      }
+      .input-area {
+        padding: 0.75rem 1rem;
+      }
+      .input-hint {
+        display: none;
+      }
+      .send-btn {
+        padding: 0 1rem;
+        min-width: 64px;
+        min-height: 44px;
+      }
+      .input-row textarea {
+        min-height: 44px;
+        font-size: 1rem; /* prevent iOS auto-zoom (needs ≥16px) */
+      }
+      footer {
+        padding: 0.6rem 1rem;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.15rem;
+      }
+      .debrief-done {
+        padding: 0.85rem 1rem;
+      }
+      .back-btn {
+        margin: 0.25rem 0.2rem;
+        min-height: 44px;
+      }
     }
   </style>
 </head>
@@ -704,6 +742,22 @@
     inputEl.style.height = 'auto';
     inputEl.style.height = Math.min(inputEl.scrollHeight, 140) + 'px';
   });
+
+  // ── Virtual keyboard handling (mobile) ───────────────────────────
+  // When the soft keyboard opens it shrinks the visual viewport.
+  // We pin the chat layout height to the visual viewport so the
+  // input stays visible and the messages area scrolls, not the page.
+  if (window.visualViewport) {
+    const chatLayout = document.querySelector('.chat-layout');
+    function onViewportResize() {
+      const vvh = window.visualViewport.height;
+      const headerH = document.querySelector('header').offsetHeight;
+      const footerH = document.querySelector('footer').offsetHeight;
+      chatLayout.style.height = (vvh - headerH - footerH) + 'px';
+    }
+    window.visualViewport.addEventListener('resize', onViewportResize);
+    window.visualViewport.addEventListener('scroll', onViewportResize);
+  }
 
   // ── Boot: send hypothesis as first context message ────────────────
   (async () => {
