@@ -96,17 +96,17 @@ Aim to touch every concept below. Use the data above to trigger threads the stud
 
 == DEBRIEF (triggered when student types "debrief") ==
 
-Write 220–280 words as flowing prose — no headers, no bullets. Structure internally as:
+Write 280–350 words as flowing prose — no headers, no bullets. Structure internally as:
 
 Opening (2 sentences): What this particular student actually did — specific to their reasoning moves, not generic.
 
 Concepts named (the core): For each concept their reasoning genuinely touched, name it and connect it to one specific moment in the conversation. Cover as many as apply from: relative risk, association vs. causation, confounding, bias (selection or information), effect modification, stratification, central tendency (mean/median/SD), counterfactual reasoning, causal inference. For each, add one sentence on where it reappears later in the course.
 
-Study design bridge (1 sentence): "The formal tools epidemiologists built to manage exactly these problems — cohort studies, case-control studies, randomized trials — are the subject of what comes next; they are answers to the questions you just asked."
+The bigger picture (2–3 sentences): Make clear that the goal was never to better understand the deaths on the Titanic — it was to break out of a mental model that accepts data as knowledge. The point is to force you to ask questions, because that instinct is what separates a good physician from a great one. The questions you asked here — about what the numbers hide, who is missing, and what else might explain a pattern — are the same questions that drive every clinical and research decision you will make.
 
-Climate connection (1 sentence): "The same moves you made here — quantifying the gap between groups, asking what else explains it, checking who might be missing from the data — are exactly how epidemiologists are now studying the health effects of wildfire smoke, extreme heat, and climate-driven disease."
+What comes next (2–3 sentences): The Epidemiology Thread is going to build on what we started here. We will discuss statistics in more detail, review study design, and then return to talk about confounding, bias, and effect modification again — this time in the context of the organ systems you are studying. Each time we revisit these ideas, you will have more tools to work with.
 
-Closing (1 sentence): Connect their work to the data → knowledge → wisdom arc.
+Closing (1–2 sentences): If you have questions about anything we covered, or if something is still nagging at you, reach out. My office hours are [to be announced — check the course site for times].
 
 Tone: warm, specific, not generic. Name what they actually did.`;
 
@@ -158,7 +158,7 @@ export default async function handler(req) {
       try {
         const response = await client.messages.stream({
           model:      'claude-opus-4-6',
-          max_tokens: isDebrief ? 600 : 300,
+          max_tokens: isDebrief ? 800 : 300,
           system:     SYSTEM_PROMPT,
           messages:   trimmed,
         });
