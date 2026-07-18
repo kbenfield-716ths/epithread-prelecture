@@ -417,7 +417,8 @@
     const btn   = document.getElementById('continueBtn');
     const err   = document.getElementById('idError');
 
-    const saved = sessionStorage.getItem('epithreadStudentId');
+    // Use localStorage (persists across tabs/sessions) instead of sessionStorage
+    const saved = localStorage.getItem('epithreadStudentId');
     if (saved) input.value = saved;
     btn.disabled = input.value.trim().length < 2;
 
@@ -437,7 +438,7 @@
         err.textContent = 'Use letters, numbers, hyphens, or underscores only.';
         return;
       }
-      sessionStorage.setItem('epithreadStudentId', id);
+      localStorage.setItem('epithreadStudentId', id);
       window.location.href = 'explorer.html';
     });
 
@@ -446,6 +447,20 @@
 
     document.getElementById('popoutBtn').addEventListener('click', () => {
       window.open('act1-movie.html', '_blank');
+    });
+
+    // Listen for messages from the Act 1 movie iframe
+    // so completing the movie can auto-advance to Act 2
+    window.addEventListener('message', (e) => {
+      if (e.data === 'act1-complete') {
+        const id = localStorage.getItem('epithreadStudentId');
+        if (id) {
+          window.location.href = 'explorer.html';
+        } else {
+          input.focus();
+          err.textContent = 'Enter your computing ID to continue.';
+        }
+      }
     });
   </script>
 

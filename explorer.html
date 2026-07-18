@@ -1531,12 +1531,12 @@
   submitBtn.addEventListener('click', () => {
     const text = hyp.value.trim();
     if (text.length < MIN_CHARS) return;
-    sessionStorage.setItem('epithreadHypothesis', text);
+    localStorage.setItem('epithreadHypothesis', text);
     window.location.href = 'tutor.html';
   });
 
   // ── Guard: redirect to index if no student ID ─────────────────────
-  if (!sessionStorage.getItem('epithreadStudentId')) {
+  if (!localStorage.getItem('epithreadStudentId')) {
     window.location.href = 'index.html';
   }
 

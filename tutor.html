@@ -65,15 +65,33 @@
       letter-spacing: 0.04em;
     }
 
-    .exchange-counter {
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 0.68rem;
-      color: var(--ink-lt);
+    .progress-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+      min-width: 120px;
     }
 
-    .exchange-counter span {
-      color: var(--ocean);
-      font-weight: 500;
+    .progress-label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.58rem;
+      color: var(--ink-lt);
+      letter-spacing: 0.03em;
+      text-align: right;
+    }
+
+    .progress-track {
+      height: 4px;
+      background: var(--rule);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--rust-lt), var(--ocean));
+      border-radius: 2px;
+      transition: width 0.6s ease;
     }
 
     /* ── Layout ── */
@@ -423,7 +441,12 @@
       <span class="page-title">Act 3 &mdash; Socratic Tutor</span>
     </div>
     <div style="display:flex;align-items:center;gap:1.5rem">
-      <span class="exchange-counter">Exchange <span id="exchangeNum">0</span> of 6–8</span>
+      <div class="progress-wrap">
+        <div class="progress-label" id="progressLabel">Getting started</div>
+        <div class="progress-track">
+          <div class="progress-fill" id="progressFill" style="width:0%"></div>
+        </div>
+      </div>
       <a href="objectives.html" style="font-family:'IBM Plex Mono',monospace;font-size:0.68rem;color:var(--ocean);text-decoration:none;letter-spacing:0.04em">Objectives &rarr;</a>
     </div>
   </header>
@@ -482,11 +505,10 @@
   // TUTOR CHAT
   // ════════════════════════════════════════════════════════════════
 
-  // ── Session state ────────────────────────────────────────────────
-  const studentId  = sessionStorage.getItem('epithreadStudentId')  || '';
-  const hypothesis = sessionStorage.getItem('epithreadHypothesis') || '';
+  // ── Session state (localStorage persists across tabs/navigations) ─
+  const studentId  = localStorage.getItem('epithreadStudentId')  || '';
+  const hypothesis = localStorage.getItem('epithreadHypothesis') || '';
 
-  // Guard
   if (!studentId || !hypothesis) {
     window.location.href = 'index.html';
   }
@@ -494,19 +516,38 @@
   document.getElementById('footerStudent').textContent = `Student: ${studentId}`;
   document.getElementById('hypDisplay').textContent    = hypothesis;
 
-  // Conversation history sent to API
+  // Restore conversation if returning to this page
+  const savedConvo = JSON.parse(localStorage.getItem('epithreadConvo') || '[]');
   const conversationHistory = [];
   let exchangeCount = 0;
   let debriefTriggered = false;
   let debriefLogged    = false;
 
   // ── DOM refs ──────────────────────────────────────────────────────
-  const messagesEl  = document.getElementById('messages');
-  const inputEl     = document.getElementById('userInput');
-  const sendBtn     = document.getElementById('sendBtn');
-  const inputArea   = document.getElementById('inputArea');
-  const debriefDone = document.getElementById('debriefDone');
-  const exchNum     = document.getElementById('exchangeNum');
+  const messagesEl   = document.getElementById('messages');
+  const inputEl      = document.getElementById('userInput');
+  const sendBtn      = document.getElementById('sendBtn');
+  const inputArea    = document.getElementById('inputArea');
+  const debriefDone  = document.getElementById('debriefDone');
+  const progressFill = document.getElementById('progressFill');
+  const progressLabel= document.getElementById('progressLabel');
+
+  // ── Progress bar (warm/cold) ──────────────────────────────────────
+  const PROGRESS_STAGES = [
+    { at: 0, label: 'Getting started',     pct: 5  },
+    { at: 1, label: 'Warming up',          pct: 15 },
+    { at: 2, label: 'Building momentum',   pct: 30 },
+    { at: 3, label: 'Deepening',           pct: 50 },
+    { at: 4, label: 'Strong progress',     pct: 70 },
+    { at: 5, label: 'Nearly there',        pct: 85 },
+    { at: 6, label: 'Ready to debrief',    pct: 95 },
+  ];
+
+  function updateProgress() {
+    const stage = [...PROGRESS_STAGES].reverse().find(s => exchangeCount >= s.at) || PROGRESS_STAGES[0];
+    progressFill.style.width = stage.pct + '%';
+    progressLabel.textContent = stage.label;
+  }
 
   // ── Typing indicator ──────────────────────────────────────────────
   const typingWrap = document.createElement('div');
@@ -555,12 +596,18 @@
     sendBtn.disabled  = disabled;
   }
 
+  function saveConversation() {
+    localStorage.setItem('epithreadConvo', JSON.stringify(conversationHistory));
+    localStorage.setItem('epithreadExchanges', String(exchangeCount));
+  }
+
   // ── API call ──────────────────────────────────────────────────────
   async function sendToTutor(userMessage) {
     conversationHistory.push({ role: 'user', content: userMessage });
 
     setInputDisabled(true);
     showTyping(true);
+    resetInactivityTimer();
 
     let assistantText = '';
 
@@ -579,7 +626,6 @@
         throw new Error(`API error ${resp.status}`);
       }
 
-      // Stream the response
       const reader = resp.body.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
@@ -592,7 +638,6 @@
         if (done) break;
         buffer += decoder.decode(value, { stream: true });
 
-        // Parse SSE lines
         const lines = buffer.split('\n');
         buffer = lines.pop();
 
@@ -621,12 +666,14 @@
     }
 
     conversationHistory.push({ role: 'assistant', content: assistantText });
+    saveConversation();
     setInputDisabled(false);
     inputEl.focus();
+    resetInactivityTimer();
 
-    // Handle debrief completion
     if (debriefTriggered && !debriefLogged) {
       debriefLogged = true;
+      clearInactivityTimer();
       extractAndShowConcepts(assistantText);
       await logDebrief(assistantText);
       inputArea.style.display = 'none';
@@ -707,6 +754,29 @@
       .replace(/$/, '</p>');
   }
 
+  // ── Inactivity auto-debrief (5 minutes) ───────────────────────────
+  let inactivityTimer = null;
+  const INACTIVITY_MS = 5 * 60 * 1000;
+
+  function resetInactivityTimer() {
+    clearInactivityTimer();
+    if (debriefTriggered || debriefLogged) return;
+    if (exchangeCount < 2) return;
+    inactivityTimer = setTimeout(() => {
+      if (debriefTriggered || debriefLogged) return;
+      debriefTriggered = true;
+      addMessage('tutor',
+        '<em style="color:var(--ocean)">It looks like you may be finished — let me pull together a debrief of what we covered.</em>',
+        false
+      );
+      sendToTutor('debrief');
+    }, INACTIVITY_MS);
+  }
+
+  function clearInactivityTimer() {
+    if (inactivityTimer) { clearTimeout(inactivityTimer); inactivityTimer = null; }
+  }
+
   // ── Send ──────────────────────────────────────────────────────────
   async function handleSend() {
     const text = inputEl.value.trim();
@@ -715,13 +785,13 @@
     inputEl.value = '';
     inputEl.style.height = 'auto';
 
-    // Check for debrief trigger
     if (/^\s*debrief\s*$/i.test(text)) {
       debriefTriggered = true;
+      clearInactivityTimer();
       addMessage('user', 'debrief');
     } else {
       exchangeCount++;
-      exchNum.textContent = exchangeCount;
+      updateProgress();
       addMessage('user', markdownToHtml(text));
     }
 
@@ -737,16 +807,13 @@
     }
   });
 
-  // Auto-resize textarea
   inputEl.addEventListener('input', () => {
     inputEl.style.height = 'auto';
     inputEl.style.height = Math.min(inputEl.scrollHeight, 140) + 'px';
+    resetInactivityTimer();
   });
 
   // ── Virtual keyboard handling (mobile) ───────────────────────────
-  // When the soft keyboard opens it shrinks the visual viewport.
-  // We pin the chat layout height to the visual viewport so the
-  // input stays visible and the messages area scrolls, not the page.
   if (window.visualViewport) {
     const chatLayout = document.querySelector('.chat-layout');
     function onViewportResize() {
@@ -759,11 +826,25 @@
     window.visualViewport.addEventListener('scroll', onViewportResize);
   }
 
-  // ── Boot: send hypothesis as first context message ────────────────
-  (async () => {
+  // ── Boot ──────────────────────────────────────────────────────────
+  // Restore prior conversation if returning to this page
+  if (savedConvo.length > 0) {
+    const savedExch = parseInt(localStorage.getItem('epithreadExchanges') || '0', 10);
+    exchangeCount = savedExch;
+    updateProgress();
+
+    savedConvo.forEach(msg => {
+      conversationHistory.push(msg);
+      const role = msg.role === 'assistant' ? 'tutor' : 'user';
+      addMessage(role, markdownToHtml(msg.content));
+    });
+
+    resetInactivityTimer();
+  } else {
+    updateProgress();
     showTyping(true);
-    await sendToTutor(hypothesis);
-  })();
+    sendToTutor(hypothesis);
+  }
   </script>
 
 </body>
