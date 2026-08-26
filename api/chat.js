@@ -111,21 +111,21 @@ Closing (1–2 sentences): If you have questions about anything we covered, or i
 Tone: warm, specific, not generic. Name what they actually did.`;
 
 
-export const config = { runtime: 'edge' };
+// Node.js runtime (not edge) — @vercel/blob (used by api/debrief.js) pulls in
+// `undici`, and once that's anywhere in node_modules, Vercel's Edge bundler
+// statically traces an unreachable-at-runtime `require('undici')' inside the
+// Anthropic SDK as a hard dependency, which Edge Runtime rejects at deploy
+// time. Node.js functions support the same Web-standard Request/Response and
+// ReadableStream streaming used below, so this is a no-op change in behavior.
 
-export default async function handler(req) {
-  // Handle CORS preflight
-  if (req.method === 'OPTIONS') {
-    return new Response(null, {
-      status: 204,
-      headers: corsHeaders(),
-    });
-  }
+export async function OPTIONS(req) {
+  return new Response(null, {
+    status: 204,
+    headers: corsHeaders(),
+  });
+}
 
-  if (req.method !== 'POST') {
-    return new Response('Method not allowed', { status: 405, headers: corsHeaders() });
-  }
-
+export async function POST(req) {
   let body;
   try {
     body = await req.json();

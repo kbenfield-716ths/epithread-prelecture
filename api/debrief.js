@@ -11,17 +11,16 @@
 
 import { put } from '@vercel/blob';
 
-export const config = { runtime: 'edge' };
+// Node.js runtime (not edge) — @vercel/blob depends on `undici`, which Edge
+// Runtime's bundler rejects when it's traced as a hard dependency. Node.js
+// functions support the same Web-standard Request/Response used below and
+// are @vercel/blob's normal home, so this is the natural runtime for it.
 
-export default async function handler(req) {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { status: 204, headers: corsHeaders() });
-  }
+export async function OPTIONS(req) {
+  return new Response(null, { status: 204, headers: corsHeaders() });
+}
 
-  if (req.method !== 'POST') {
-    return new Response('Method not allowed', { status: 405, headers: corsHeaders() });
-  }
-
+export async function POST(req) {
   let body;
   try {
     body = await req.json();
