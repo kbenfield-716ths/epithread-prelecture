@@ -487,7 +487,7 @@
       </div>
 
       <div class="debrief-done" id="debriefDone">
-        <p>Your debrief has been logged. You're done with this module.</p>
+        <p id="debriefDoneMsg">Your debrief has been logged. You're done with this module.</p>
         <button class="back-btn" onclick="window.location.href='explorer.html'">&larr; Back to explorer</button>
         <button class="back-btn" onclick="window.location.href='index.html'">&larr; Start over</button>
       </div>
@@ -500,6 +500,7 @@
     <span>EpiThread — Act 3 of 4</span>
   </footer>
 
+  <script src="debrief-sync.js"></script>
   <script>
   // ════════════════════════════════════════════════════════════════
   // TUTOR CHAT
@@ -512,6 +513,11 @@
   if (!studentId || !hypothesis) {
     window.location.href = 'index.html';
   }
+
+  // Opportunistically retry any debrief(s) that failed to sync in a past
+  // session (e.g. a prior server misconfiguration) — harmless no-op when
+  // the queue is empty.
+  EpiThreadDebrief.flushQueuedDebriefs();
 
   document.getElementById('footerStudent').textContent = `Student: ${studentId}`;
   document.getElementById('hypDisplay').textContent    = hypothesis;
@@ -675,8 +681,14 @@
       debriefLogged = true;
       clearInactivityTimer();
       extractAndShowConcepts(assistantText);
-      await logDebrief(assistantText);
+      const { synced } = await logDebrief(assistantText);
       inputArea.style.display = 'none';
+      const debriefDoneMsg = document.getElementById('debriefDoneMsg');
+      if (!synced && debriefDoneMsg) {
+        debriefDoneMsg.textContent =
+          "Your debrief is saved on this device and will sync automatically next time you're online. " +
+          "You're done with this module.";
+      }
       debriefDone.classList.add('visible');
     }
 
@@ -717,27 +729,23 @@
   }
 
   // ── Debrief logging ───────────────────────────────────────────────
+  // Delegates to debrief-sync.js: checks resp.ok (a 500 does NOT throw on
+  // its own), retries once, and queues locally in localStorage if the
+  // server still can't take it — so a backend misconfiguration never
+  // silently drops a student's debrief again.
   async function logDebrief(debriefSummary) {
-    try {
-      const concepts = Object.entries(CONCEPT_PATTERNS)
-        .filter(([, re]) => re.test(debriefSummary))
-        .map(([name]) => name);
+    const concepts = Object.entries(CONCEPT_PATTERNS)
+      .filter(([, re]) => re.test(debriefSummary))
+      .map(([name]) => name);
 
-      await fetch('/api/debrief', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          studentId,
-          hypothesis,
-          debriefSummary,
-          conceptsTouched: concepts,
-          exchangeCount,
-          timestamp: new Date().toISOString(),
-        }),
-      });
-    } catch (err) {
-      console.warn('Debrief log failed:', err);
-    }
+    return EpiThreadDebrief.logDebrief({
+      studentId,
+      hypothesis,
+      debriefSummary,
+      conceptsTouched: concepts,
+      exchangeCount,
+      timestamp: new Date().toISOString(),
+    });
   }
 
   // ── Simple markdown → html ────────────────────────────────────────

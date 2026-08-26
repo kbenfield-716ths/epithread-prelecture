@@ -1,6 +1,15 @@
 // api/debrief.js — Vercel serverless function
-// Writes a debrief record as a JSON file to a GitHub repository
+// Writes a debrief record as a JSON blob to Vercel Blob storage.
 // Schema: { studentId, timestamp, hypothesis, conceptsTouched, exchangeCount, debriefSummary }
+//
+// Requires a Blob store connected to this Vercel project:
+//   Vercel dashboard → project → Storage tab → Create Database → Blob →
+//   connect it to this project. That auto-adds the BLOB_READ_WRITE_TOKEN
+//   env var to all environments — no manual token/repo config needed
+//   (this replaces the old GitHub-Contents-API approach, which broke
+//   silently when GITHUB_TOKEN/GITHUB_DEBRIEF_REPO were misconfigured).
+
+import { put } from '@vercel/blob';
 
 export const config = { runtime: 'edge' };
 
@@ -33,12 +42,8 @@ export default async function handler(req) {
     return new Response('Missing required fields', { status: 400, headers: corsHeaders() });
   }
 
-  const githubToken  = process.env.GITHUB_TOKEN;
-  const githubRepo   = process.env.GITHUB_DEBRIEF_REPO;  // e.g. "your-org/epithread-debriefs"
-  const githubBranch = process.env.GITHUB_DEBRIEF_BRANCH || 'main';
-
-  if (!githubToken || !githubRepo) {
-    console.warn('GitHub env vars not configured — debrief not persisted');
+  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+    console.warn('BLOB_READ_WRITE_TOKEN not configured — debrief not persisted (connect a Blob store to this project in Vercel → Storage)');
     return new Response(JSON.stringify({ ok: true, persisted: false }), {
       status: 200,
       headers: { ...corsHeaders(), 'Content-Type': 'application/json' },
@@ -55,42 +60,30 @@ export default async function handler(req) {
     debriefSummary,
   };
 
-  // File path: debriefs/YYYY-MM-DD_studentId_<random>.json
+  // Blob pathname: debriefs/YYYY-MM-DD_studentId_<random>.json
   const dateStr  = timestamp.slice(0, 10);
   const rand     = Math.random().toString(36).slice(2, 8);
-  const filePath = `debriefs/${dateStr}_${studentId}_${rand}.json`;
-  const content  = btoa(unescape(encodeURIComponent(JSON.stringify(record, null, 2))));
+  const pathname = `debriefs/${dateStr}_${studentId}_${rand}.json`;
 
-  const apiUrl = `https://api.github.com/repos/${githubRepo}/contents/${filePath}`;
+  try {
+    const blob = await put(pathname, JSON.stringify(record, null, 2), {
+      access:      'private',
+      contentType: 'application/json',
+    });
 
-  const ghResp = await fetch(apiUrl, {
-    method: 'PUT',
-    headers: {
-      Authorization:  `Bearer ${githubToken}`,
-      'Content-Type': 'application/json',
-      Accept:         'application/vnd.github+json',
-      'X-GitHub-Api-Version': '2022-11-28',
-    },
-    body: JSON.stringify({
-      message:  `debrief: ${studentId} @ ${timestamp}`,
-      content,
-      branch:   githubBranch,
-    }),
-  });
-
-  if (!ghResp.ok) {
-    const text = await ghResp.text();
-    console.error('GitHub write failed:', ghResp.status, text);
-    return new Response(JSON.stringify({ ok: false, error: 'GitHub write failed' }), {
+    return new Response(JSON.stringify({ ok: true, persisted: true, pathname: blob.pathname }), {
+      status: 200,
+      headers: { ...corsHeaders(), 'Content-Type': 'application/json' },
+    });
+  } catch (err) {
+    // Log identifying info so a future failure doesn't also erase which
+    // student's debrief was lost — check Vercel runtime logs for this.
+    console.error(`Blob write failed for studentId=${studentId}:`, err && err.message ? err.message : err);
+    return new Response(JSON.stringify({ ok: false, error: 'Blob write failed' }), {
       status: 500,
       headers: { ...corsHeaders(), 'Content-Type': 'application/json' },
     });
   }
-
-  return new Response(JSON.stringify({ ok: true, persisted: true, file: filePath }), {
-    status: 200,
-    headers: { ...corsHeaders(), 'Content-Type': 'application/json' },
-  });
 }
 
 function corsHeaders() {

@@ -412,6 +412,7 @@
     <span id="footerTimestamp"></span>
   </footer>
 
+  <script src="debrief-sync.js"></script>
   <script>
     const input = document.getElementById('studentIdInput');
     const btn   = document.getElementById('continueBtn');
@@ -444,6 +445,13 @@
 
     document.getElementById('footerTimestamp').textContent =
       new Date().toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' });
+
+    // Opportunistically retry any debrief(s) still queued from a past
+    // failed session (e.g. a prior server misconfiguration). Silent,
+    // best-effort — no UI change either way.
+    if (window.EpiThreadDebrief) {
+      EpiThreadDebrief.flushQueuedDebriefs();
+    }
 
     document.getElementById('popoutBtn').addEventListener('click', () => {
       window.open('act1-movie.html', '_blank');
