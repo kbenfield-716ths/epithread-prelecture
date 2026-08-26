@@ -15,6 +15,13 @@ import { put } from '@vercel/blob';
 // Runtime's bundler rejects when it's traced as a hard dependency. Node.js
 // functions support the same Web-standard Request/Response used below and
 // are @vercel/blob's normal home, so this is the natural runtime for it.
+//
+// Auth: Vercel's Storage "Connect Database" flow authenticates via OIDC by
+// default — it injects BLOB_STORE_ID (+ relies on the system
+// VERCEL_OIDC_TOKEN) rather than a static BLOB_READ_WRITE_TOKEN. The SDK
+// picks either up automatically by env var convention, so put() below needs
+// no explicit token/storeId — we just need to check for *either* form of
+// credential before attempting the write.
 
 export async function OPTIONS(req) {
   return new Response(null, { status: 204, headers: corsHeaders() });
@@ -41,8 +48,8 @@ export async function POST(req) {
     return new Response('Missing required fields', { status: 400, headers: corsHeaders() });
   }
 
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
-    console.warn('BLOB_READ_WRITE_TOKEN not configured — debrief not persisted (connect a Blob store to this project in Vercel → Storage)');
+  if (!process.env.BLOB_READ_WRITE_TOKEN && !process.env.BLOB_STORE_ID) {
+    console.warn('No Blob credentials found (BLOB_READ_WRITE_TOKEN or BLOB_STORE_ID) — debrief not persisted (connect a Blob store to this project in Vercel → Storage)');
     return new Response(JSON.stringify({ ok: true, persisted: false }), {
       status: 200,
       headers: { ...corsHeaders(), 'Content-Type': 'application/json' },
